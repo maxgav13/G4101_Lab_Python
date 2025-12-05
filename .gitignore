@@ -1,0 +1,17 @@
+# Mac OS-specific storage files
+.DS_Store
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Jupyter NB Checkpoints
+.ipynb_checkpoints/
+
+# DotEnv configuration
+.env
+.DS_Store
+
+# Quarto
+/.quarto/
+**/*.quarto_ipynb

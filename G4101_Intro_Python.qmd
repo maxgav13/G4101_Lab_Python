@@ -1,0 +1,901 @@
+---
+title: "Introduccion a R"
+author: "Maximiliano Garnier Villarreal"
+lang: es
+toc: true
+toc-depth: 3
+toc-title: Contenidos
+number-sections: true
+highlight-style: pygments
+theme: sandstone
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Codigo"
+    code-tools: true
+    html-math-method: katex
+  typst: default
+  docx: default
+execute:
+  warning: false
+  error: false
+  echo: true
+---
+
+# Basico
+
+## Paquetes
+
+Como cargar paquetes y funciones o datos. En **Python** se usa la palabra reservada `import` para cargar paquetes. Si se quiere usar un nombre abreviado para el paquete se usa `as`. Para cargar funciones o datos especificos de un paquete se usa `from <PAQUETE> import <FUNCION/DATO>`.
+
+```{python}
+import numpy as np
+import pandas as pd
+import polars as pl
+import polars.selectors as cs
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotnine as p9
+from plotnine.data import penguins
+from great_tables.data import airquality
+from great_tables import GT
+```
+
+
+## Operaciones basicas
+
+**Python** puede funcionar como una calculadora basica, donde es posible relizar operaciones aritmeticas sencillas. Para operaciones mas complejas se pueden usar funciones predefinidas de los paquetes **numpy** o **math**.
+
+Para acceder a funciones de paquetes se usa la notacion de punto (`.`), donde primero se escribe el nombre del paquete (o su abreviatura) seguido de un punto y despues el nombre de la funcion. Esta misma notación se usa para acceder a métodos específicos de ciertos objetos.
+
+```{python}
+1+2
+1-2
+1*2
+1/2
+np.sqrt(125)
+
+import math
+
+math.log10(10)
+math.exp(3)
+math.sqrt(9)
+```
+
+
+## Crear objetos
+
+Objetos se pueden crear usando el operador `=`. Al crear un objeto este no se despliega en la consola a menos que uno lo llame directamente, usualmente con el comando `print()`, especialmente si se quieren desplegar varios objetos en un mismo bloque.
+
+```{python}
+x = 14
+y = 2
+x
+x + y
+z = x + y
+print(z)
+```
+
+
+## f-Strings
+
+f-Strings permiten crear cadenas de texto (strings) que incluyen valores de variables o expresiones dentro de llaves `{}`. Para crear un f-String se usa la letra `f` antes de las comillas que delimitan la cadena.
+
+Para cambiar el formato de los valores dentro de las llaves se pueden usar especificadores de formato despues de dos puntos `:`. Por ejemplo, para mostrar un numero con 2 decimales se usa `{variable:.2f}`.
+
+```{python}
+name = "Ana"
+age = 28
+greeting = f"Hola, mi nombre es {name} y tengo {age} años."
+print(greeting)
+
+pi = 3.14159265359
+formatted_pi = f"El valor de pi con 2 decimales es {pi:.2f}."
+print(formatted_pi)
+```
+
+## Funciones Lambda 
+
+Funciones Lambda son funciones anonimas que se pueden definir en una sola linea de codigo. Estas son utiles para operaciones simples y rapidas, especialmente cuando se usan como argumentos en otras funciones, cuando no se necesita reutilizar la funcion, o para operaciones cortas.
+
+```{python}
+square = lambda x: x ** 2
+print(square(5))
+
+add = lambda x, y: x + y
+print(add(3, 7))
+
+multiply = lambda x, y: x * y
+print(multiply(4, 6))
+```
+
+## Objetos logicos
+
+Objetos logicos permiten hacer comparaciones o pruebas, donde usualmente el resultado es TRUE o FALSE. En terminos numericos TRUE equivale a 1 y FALSE a 0.
+
+```{python}
+x = 4
+x == 4
+x != 4
+x < 4
+x <= 5
+```
+
+
+## Listas
+
+El objeto fundamental en **Python** es la lista, la cual puede contener diferentes tipos de objetos y diferentes dimensiones. Listas son creadas usando corchetes `[]` y los elementos son separados por comas.
+
+En **Python** las listas se indexan empezando en 0, a diferencia de **R** donde se empieza en 1. Para acceder a los elementos de una lista se usan corchetes cuadrados `[]`, y para acceder a elementos dentro de elementos (sublistas) se usan multiples corchetes.
+
+```{python}
+lst = [x, y, "Hola", [1,2,3], np.array([4,5,6])]
+
+lst[0]
+lst[3]
+lst[3][1]
+```
+
+Las listas tienen diferentes métodos para manipularlas, como agregar (`.append()`) o eliminar (`.remove()`) elementos, ordenar los elementos (`.sort()`), etc.
+
+```{python}
+lst.append(100)
+lst.remove("Hola")
+lst
+```
+
+
+## Diccionarios
+
+Diccionarios son objetos que contienen pares de llave:valor. Las llaves deben ser unicas y pueden ser de diferentes tipos, mientras que los valores pueden ser cualquier objeto, incluyendo listas y otros diccionarios. Diccionarios son creados usando llaves `{}` y los pares llave:valor son separados por comas. Para acceder a los valores se usan corchetes cuadrados `[]` con la llave correspondiente.
+
+```{python}
+dic = {"Numero1": x,
+       "Numero2": y,
+       "Texto": "Hola",
+       "Lista": [1,2,3],
+       "Arreglo": np.array([4,5,6])
+       }
+
+dic["Numero1"]
+dic["Lista"][1]
+```
+
+
+## Vectores
+
+Para trabajar con vectores en **Python** se usa el paquete **numpy**, el cual permite crear y manipular vectores de manera eficiente. En general se crean los arreglos con la función `np.array()`. **Python** y **numpy** diferencian entre vectores numericos (float) y enteros (int), mientras que en **R** no hay tal distinción. Si no se asignan de forma explicita los datos numericos se asignan como enteros si no tienen decimales y como float si tienen decimales.
+
+Los vectores son unidimensionales, las matrices son bidimensionales, y los tensores son multidimensionales. En general los elementos deben ser del mismo tipo.
+
+Se pueden crear vectores a partir de datos puntuales, los cuales pueden ser manipulados con operaciones aritmeticas u obtener estadisticas descriptivas.
+
+```{python}
+x = np.array([1,2,3,4,5], dtype=float)
+y = np.array([6,7,8,9,10])
+
+print(x + y)
+print(x * 2)
+print(y - 3)
+print(y / x)
+print(np.mean(x))
+print(np.std(y))
+```
+
+O se pueden crear vectores en secuencia (`np.arange(start = ,stop = ,step = )`) o de valores repetidos (`np.repeat()`). Crear vectores de valores repetidos no aplica unicamente para datos numericos.
+
+```{python}
+f = np.arange(1,11) # el valor final no se incluye
+u = np.repeat(5,3)
+v = np.repeat([1,2,3],2)
+
+print(f)
+print(u)
+print(v)
+```
+
+Para subsetear vectores se usan corchetes cuadrados `[]`, donde se puede usar indices individuales, rangos de indices (no se incluye el ultimo elemento), o indices logicos.
+
+```{python}
+print(x[0])        # primer elemento
+print(y[2:5])      # elementos del 3 al 5, el 6 no se incluye
+print(x[[0,2,4]])  # elementos 1, 3 y 5
+print(y[y > 8])    # elementos mayores a 8
+```
+
+
+## Series
+
+Las series son vectores unidimensionales que pueden contener diferentes tipos de datos, similar a los vectores/arreglos de **numpy**, y pueden tener etiquetas (`index`) para cada elemento. Las series son creadas usando `pd.Series()` del paquete **pandas**. Pueden crearse a partir de listas o arreglos, y pueden accederse a los elementos usando las etiquetas o los indices.
+
+```{python}
+s1 = pd.Series(np.array([1,2,3,4,5]))
+s2 = pd.Series(np.array([6,7,8,9,10]), 
+               index=['a','b','c','d','e'])
+
+print(s1)
+print(s2)
+print(s2['c'])
+print(s2.index)
+```
+
+Con **polars** se pueden crear series usando `pl.Series()`, la principal diferencia es que no se pueden asignar indices personalizados. Series de **pandas** se pueden convertir a series de **polars** usando `pl.Series(<SERIE_PANDAS>)`.
+
+```{python}
+s3 = pl.Series(np.array([11,12,13,14,15]))
+s4 = pl.Series(s2)
+print(s3)
+print(s4)
+```
+
+Para series numericas se pueden realizar operaciones aritmeticas y obtener estadisticas descriptivas similares a las de los arreglos de **numpy**. Un metodo muy util es `.describe()`, esto aplica tanto para Series de **pandas** y **polars**.
+
+```{python}
+print(s1 + 10)
+print(s2 * 2)
+print(s1.mean())
+print(s2.std())
+print(s2.describe())
+
+print(s4 + 5)
+print(s4.mean())
+print(s4.describe())
+```
+
+Con series se pueden crear vectores categoricos, tanto nominales como ordinales (**pandas**). Estos son preferibles a los vectores de tipo objeto (strings) ya que ocupan menos espacio en memoria y permiten hacer operaciones especificas para datos categoricos.
+
+```{python}
+dias_cat = pd.Series(dias, dtype="category")
+
+dias_cat
+dias_cat.cat.categories
+dias_cat.cat.codes
+```
+
+```{python}
+dias_pl = pl.Series(dias, dtype=pl.Categorical)
+
+dias_pl
+dias_pl.cat.get_categories()
+```
+
+Para crear factores ordenados se usa el argumento `categories` para definir los niveles y `ordered=True` para indicar que es un factor ordenado.
+
+```{python}
+ordenado = pd.Series(
+  pd.Categorical(['Bajo','Medio','Alto', 'Medio', 'Bajo', 'Bajo', 'Alto'],categories=['Bajo','Medio','Alto'],
+  ordered = True))
+
+ordenado
+ordenado.cat.categories
+ordenado.cat.codes
+```
+
+Para Series de datos categoricos un metodo util es `.value_counts()`.
+
+```{python}
+print(dias_cat.value_counts())
+print(ordenado.value_counts())
+print(dias_pl.value_counts())
+```
+
+Si se quiere acceder a los elementos de una serie se usan corchetes cuadrados `[]`, similar a los arreglos de **numpy**, esto para **polars**. Para **pandas** de manera más correcta si se quiere acceder por medio de la posicion se usa `.iloc[]` y si se quiere acceder por medio de los indices o pruebas logicas se usa `.loc`. Si se desea obtener unicamente los valores de la serie se usa `.values`.
+
+```{python}
+print(s2[4])        # tercer elemento
+print(s2.iloc[10])   # tercer elemento
+print(s2['c'])      # elemento con indice 'c'
+print(s2.loc['c'])  # elemento con indice 'c'
+print(s2[2:5])      # elementos del 3 al 5, el 6 no se incluye
+print(s2.iloc[2:5]) # elementos del 3 al 5, el 6 no se incluye
+print(s2.loc['b':'d']) # elementos con indices 'b' a 'd
+print(s2[s2 > 8])   # elementos mayores a 8
+print(s2.values)    # obtener valores
+```
+
+```{python}
+print(s4[4])        # tercer elemento
+print(s4[2:5])      # elementos del 3 al 5, el 6 no se incluye
+print(ss4.filter(s4 > 8))  # elementos mayores a 8
+print(s4.to_numpy())  # obtener valores
+```
+
+## DataFrames
+
+Vectores y Series son unidimensionales y pueden almacenar datos de un solo tipo. DataFrames son objetos que pueden almacenar mas de 1 vector y los diferentes vectores pueden ser diferentes entre ellos. Esto es similar a una hoja de calculo donde cada columna es un vector. Para DataFrames los contenidos pueden ser unicamente vectores de la misma longitud.
+
+DataFrames son creados usando `pd.DataFrame()` de **pandas** o `pl.DataFrame()` de **polars**. Se pueden crear a partir de diccionarios, listas de listas, listas de diccionarios, o a partir de archivos externos (CSV, Excel, etc.).
+
+```{python}
+data = {'Visitas': [10, 20, 30, 40, 50],
+        'Revision': [5, 15, 25, 35, 45],
+        'Dias': ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes']}
+DF = pd.DataFrame(data)
+df = pl.DataFrame(data)
+
+print(DF)
+print(df)
+```
+
+Similar a las Series, DataFrames tienen índices para las filas (de **pandas**) y nombres para las columnas. Si no se especifican los índices de las filas, estas se numeran automáticamente empezando en 0. Estos se pueden acceder usando `.index` para las filas y `.columns` para las columnas. Para ver las primeras filas de un DataFrame se usa el metodo `.head()`. Para tomar una muestra de un DataFrame se usa el metodo `.sample()`.
+
+```{python}
+print(DF.index)
+print(DF.columns)
+print(DF.head())
+print(DF.sample(3))
+print(df.head(2))
+```
+
+Para acceder a los datos dentro de un DataFrame se usan corchetes cuadrados `[,]`, donde el espacio antes de la coma se usa para seleccionar filas y el espacio despues para seleccionar columnas (de acuerdo al numero o al nombre). 
+
+En **pandas**, para acceder a una columna se pueden usar tambien el operador `.` o el metodo `.loc[]` o `.iloc[]`. 
+
+```{python}
+print(DF.iloc[0,0])      # primer fila, primer columna
+print(DF.loc[0,'Visitas']) # primer fila, columna 'Visitas'
+print(DF['Revision'])     # columna 'Revision'
+print(DF.Visitas)        # columna 'Visitas'
+print(DF.iloc[0:3,:])     # primeras 3 filas, todas las columnas
+print(DF.iloc[:,0])      # todas las filas, primera columna
+```
+
+En **polars** se usan solo los corchetes cuadrados `[]` para acceder a los datos.
+
+```{python}
+print(df[0,0])        # primer fila, primer columna
+print(df[0,'Visitas']) # primer fila, columna 'Visitas'
+print(df['Revision'])   # columna 'Revision'
+print(df[:,0])        # todas las filas, primera columna
+print(df[0:3,:])       # primeras 3 filas, todas las columnas
+```
+
+Similar a las Series, DataFrames tienen metodos para obtener estadisticas descriptivas y resumenes de los datos. Un metodo muy util es `.describe()`. **polars** tiene otro metodo llamado `.glimpse()` para ver la estructura general de los datos.
+
+```{python}
+print(DF.describe())
+print(df.describe())
+print(df.glimpse())
+```
+
+## Verificando objetos
+
+Hay funciones para verificar el tipo de objeto (`type()`, `.dtype`, `.info()`), y cambiar de un tipo a otro (**pandas**: `.astype()`, **polars**: `.cast(pl.*)`).
+
+```{python}
+print(type(s1))
+print(s1.dtype)
+print(s1.info())
+s1 = s1.astype(float)
+print(s1)
+```
+
+```{python}
+print(type(DF))
+print(DF.dtypes)
+print(DF.info())
+DF['Visitas'] = DF['Visitas'].astype(float)
+print(DF.dtypes)
+```
+
+```{python}
+print(s4.dtype)
+s4 = s4.cast(pl.Float64)
+print(s4.dtype)
+print(df.dtypes)
+```
+
+## Importando/cargando datos
+
+Para importar datos desde archivos externos se usan diferentes funciones dependiendo del formato del archivo. El formato mas comun es CSV, para esto se usa `pd.read_csv()` de **pandas** o `pl.read_csv()` de **polars**.
+
+```{python}
+dat1 = pd.read_csv("data/LungCapData2.csv")
+titanic = pl.read_csv("data/titanic.csv")
+```
+
+
+# Manipulacion de datos
+
+Se va a trabajar bajo el paradigma de datos ordenados (tidy data). Datos ordenados quiere decir una observacion por fila y cada variable en su columna. Se recomienda usar el paquete **pandas** o **polars** para manipular datos en **Python**. Aqui se muestran algunas de las operaciones mas comunes usando ambos paquetes. 
+
+Si el DataFrame es muy grande se recomienda usar **polars** por su eficiencia en memoria y velocidad. **polars** tiene una sintaxis similar al **tidyverse** de **R**.
+
+Para las pruebas logicas se usan los operadores `&` (AND), `|` (OR) y `~` (NOT), y para agrupar operaciones logicas se usan parentesis `()`.
+
+## Resumen, filtrado, seleccion y creacion de variables
+
+### Polars
+
+En general **polars** usa la funcion `pl.col("*")` para referirse a las columnas de un DataFrame, a esto se le llama expresiones. Dentro de `pl.col()` se pueden usar nombres de columnas, numeros de columnas, o selectores del paquete `polars.selectors` (importado como `cs`).
+
+El metodo `.select()` tiene dos funciones principales: seleccionar/crear variables y resumir variables. Para crear o modificar variables se usa `.with_columns()`. A la hora de crear nuevas variables se pueden nombrar usando `.alias()` (metodo preferido) o asignandolas con el `=`.
+
+Para filtrar datos de acuerdo a criterios se usa el metodo `.filter()`, asi como operadores logicos (`>`, `<`, `==`), selectores auxiliares (`cs`) y funciones auxiliares (`.is_between()`, `.is_in([])`, etc.). 
+
+Para ordenar los datos se usa `.sort()`.
+
+Muchas veces se tiene una variable agrupadora (texto/categorica) en los datos y se requiere calcular estadisticas por grupo, para esto se usa `.group_by()` junto con `.agg()`.
+
+
+```{python}
+dat1_pl = pl.DataFrame(dat1)
+air_pl = pl.DataFrame(airquality)
+
+dat1_pl.select(pl.col("Age"))
+dat1_pl.select(pl.col("Age").mean().alias("Mean_Age"))
+
+dat1_pl.with_columns(Altura = pl.col("Height")*2.54)
+
+dat1_pl.group_by(
+  pl.col("Gender")
+  ).agg(
+    pl.col("Age").mean().alias("Mean_Age")
+    )
+
+dat1_pl.group_by(
+  pl.col("Gender","Smoke")
+  ).agg(
+    pl.col("Age").mean().alias("Mean_Age")
+    )
+
+dat1_pl.group_by(
+  pl.col("Gender")
+  ).agg(
+    pl.len().alias("N"),
+    pl.col("Age","Height","LungCap").mean().name.suffix("_mean"),
+    )
+
+air_pl.filter(pl.col("Temp") > 85)
+
+air_pl.filter((pl.col("Temp") > 85) & (pl.col("Wind") > 10))
+
+air_pl.filter(
+  (pl.col("Temp") > 85) & (pl.col("Wind") > 10)
+  ).select(
+    pl.col("Ozone","Solar_R")
+    )
+
+air_pl.filter(pl.col('Temp').is_between(60,70))
+
+air_pl.sort("Temp")
+air_pl.sort("Temp", descending=True)
+
+dat1_pl.drop(pl.col("Smoke"))
+dat1_pl.select(
+  cs.exclude(pl.col("Smoke"))
+  )
+
+titanic.with_columns(
+  pl.col("Pclass","Survived","Sex")
+  .cast(pl.String)
+  .cast(pl.Categorical)
+)
+
+mapeo_mes = {
+  5: "Mayo",
+  6: "Junio",
+  7: "Julio",
+  8: "Agosto",
+  9: "Septiembre"
+}
+
+air_pl = air_pl.with_columns(
+  pl.col("Month")
+  .replace_strict(mapeo_mes)
+  .cast(pl.Categorical)
+  )
+
+air_pl.filter(pl.col('Month').is_in(['Mayo','Julio']))
+```
+
+
+### Pandas
+
+En general **pandas** usa el nombre del DataFrame seguido de corchetes cuadrados `[]` para referirse a las columnas de un DataFrame. Dentro de los corchetes se pueden usar nombres de columnas, numeros de columnas, o pruebas logicas.
+
+Para resumir variables se usa el metodo `.aggregate()` o `.agg()`, que se puede combinar con `.groupby()` para obtener medidas por grupos. Para crear o modificar variables se usa `.assign()` (metodo preferido) o asignandolas con el `df["*"] =`. Para ordenar los datos se usa `.sort_values()`. Hay otros metodos adicionales que se pueden acceder usando `.*` sobre la Serie (variable) respectiva (`.between()`, `.isin([])`, etc.).
+
+```{python}
+titanic_pd = titanic.to_pandas()
+
+dat1['Age']
+dat1.loc[:, 'Age']
+dat1.Age
+
+dat1['Age'].mean()
+
+dat1.assign(Altura = dat1["Height"]*2.54)
+dat1['Altura'] = dat1["Height"]*2.54
+
+dat1.groupby("Gender")["Age"].aggregate("mean")
+
+dat1.groupby(["Gender","Smoke"])["Age"].agg("mean")
+
+dat1.groupby("Gender").agg(
+  N=("Gender", "size"),
+  Age_mean=("Age", "mean"),
+  Height_mean=("Height", "mean"),
+  LungCap_mean=("LungCap", "mean"),
+).reset_index()
+
+airquality[airquality["Temp"] > 85]
+
+airquality[(airquality["Temp"]>85) & (airquality["Wind"]>10)]
+
+airquality[(airquality["Temp"]>85) & (airquality["Wind"]>10)][["Ozone","Solar_R"]]
+airquality.loc[(airquality["Temp"]>85) & (airquality["Wind"]>10),["Ozone","Solar_R"]]
+
+airquality[airquality["Temp"].between(60, 70)]
+
+airquality.sort_values(by="Temp")
+airquality.sort_values(by="Temp", ascending=False)
+
+dat1.drop(columns=["Smoke"])
+dat1.loc[:, dat1.columns != "Smoke"]
+
+titanic_pd[["Pclass", "Survived", "Sex"]].astype("category")
+
+mapeo_mes = {
+  5: "Mayo",
+  6: "Junio",
+  7: "Julio",
+  8: "Agosto",
+  9: "Septiembre"
+}
+
+airquality["Month"].map(mapeo_mes).astype("category")
+
+airquality.loc[(airquality["Month"].isin([5,7]))]
+```
+
+Ejemplos de encadenamiento (chaining) de operaciones comunes usando **pandas** y **polars**.
+
+```{python}
+# Pandas: filtrar Temp>80 y Wind<=10, crear columna, agrupar y ordenar
+result_pd = (
+    airquality
+    .loc[(airquality["Temp"] > 80) & (airquality["Wind"] <= 10)]
+    .assign(Temp_C=lambda df: (df["Temp"] - 32) * 5/9)      # nueva columna derivada
+    .groupby("Month", as_index=False)
+    .agg(mean_temp=("Temp", "mean"), mean_wind=("Wind", "mean"))
+    .sort_values("mean_temp", ascending=False)
+)
+result_pd
+
+# Polars: filtrar, crear columna y agregar por mes
+result_pl = (
+    air_pl
+    .filter((pl.col("Temp") > 80) & (pl.col("Wind") <= 10))
+    .with_columns(((pl.col("Temp") - 32) * 5/9).alias("Temp_C"))
+    .group_by("Month")
+    .agg([
+        pl.col("Temp").mean().alias("mean_temp"),
+        pl.col("Wind").mean().alias("mean_wind")
+    ])
+    .sort("mean_temp", descending=True)
+)
+result_pl
+```
+
+# Graficos
+
+## matplotlib y seaborn
+
+La libreria base para graficos en **Python** es **matplotlib**, la cual es muy poderosa pero su sintaxis puede ser complicada. Por esto, para graficos sencillos y estadisticos, se recomienda usar **seaborn**, la cual esta basada en **matplotlib** pero tiene una sintaxis mas sencilla y produce graficos mas atractivos por defecto.
+
+De forma general se usan las funciones `plt.figure()` o `plt.subplots()` para crear la figura (`fig`) y los ejes (`ax`, `axes`), y despues se usan metodos de los ejes para agregar geoms, etiquetas, titulos, leyendas, etc. Al final se usa `plt.show()` para desplegar el grafico (opcional en Jupyter/Quarto).
+
+Ejemplo del uso de **matplotlib**:
+
+```{python}
+np.random.seed(0)
+x = np.linspace(0, 10, 100)
+y = np.sin(x) + 0.12 * np.random.randn(100)
+y2 = np.cos(x)
+
+cats = ["A", "B", "C", "D"]
+vals = [23, 45, 12, 30]
+
+box_data = [np.random.normal(loc=i, scale=1, size=60) for i in range(4)]
+
+fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+
+# Línea + dispersión (superposición de geoms)
+ax = axes[0, 0]
+ax.plot(x, y2, label="cos(x)", color="C1", linewidth=2)
+ax.scatter(x, y, label="sin(x) + ruido", color="C0", s=20, alpha=0.7)
+ax.set_title("Línea + Dispersión")
+ax.set_xlabel("x")
+ax.set_ylabel("y")
+ax.legend()
+ax.grid(True)
+
+# Histograma
+ax = axes[0, 1]
+ax.hist(y, bins=20, color="C2", edgecolor="k")
+ax.set_title("Histograma")
+ax.set_xlabel("Valor")
+ax.set_ylabel("Frecuencia")
+ax.grid(axis="y", alpha=0.3)
+
+# Barras categóricas
+ax = axes[1, 0]
+ax.bar(cats, vals, color="C3", edgecolor="k")
+ax.set_title("Barras")
+ax.set_xlabel("Categoría")
+ax.set_ylabel("Valor")
+for i, v in enumerate(vals):
+  ax.annotate(str(v), (i, v), ha="center", va="bottom")
+
+# Boxplot
+ax = axes[1, 1]
+ax.boxplot(box_data, labels=[f"Grp{i}" for i in range(1, 5)], patch_artist=True,
+       boxprops=dict(facecolor="C4", color="k"))
+ax.set_title("Boxplot")
+ax.set_ylabel("Valor")
+
+fig.tight_layout()
+# fig.savefig("figs/matplotlib_structure.png", dpi=300)  # opción: guardar en archivo
+fig
+```
+
+Usando **seaborn**:
+
+```{python}
+fig, ax = plt.subplots()
+sns.histplot(data = airquality, x = "Temp", bins = 20, 
+             color = "blue", edgecolor = "black", kde=False)
+plt.xlabel("Temperatura")
+plt.ylabel("Frecuencia")
+plt.title("Histograma de Temperatura")
+plt.show()
+
+# Histograma por mes (col_wrap controla cuántas columnas por fila)
+g = sns.displot(
+  data=air_pl,
+  x="Temp",
+  col="Month",
+  col_wrap=3,
+  bins=20,
+  color="blue",
+  facet_kws={'sharex': True, 'sharey': False}
+)
+g.set_axis_labels("Temperatura", "Frecuencia")
+g.fig.suptitle("Histogramas de Temperatura por Mes", y=1.02)
+g
+```
+
+```{python}
+fig, ax = plt.subplots()
+sns.countplot(data = dat1, x = "Gender", hue="Smoke",
+              dodge=True, stat="count",              
+              palette = "Set1")
+plt.xlabel("Genero")
+plt.ylabel("Conteo")
+plt.title("Conteo por Genero")
+plt.show()
+```
+
+```{python}
+fig, ax = plt.subplots()
+sns.boxplot(data = airquality, x = "Month", y = "Temp", 
+            palette = "Set2")
+plt.xlabel("Mes")
+plt.ylabel("Temperatura")
+plt.title("Boxplot de Temperatura por Mes")
+plt.show()
+```
+
+```{python}
+fig, ax = plt.subplots()
+sns.scatterplot(data=air_pl, x="Wind", y="Temp")
+plt.xlabel("Viento")
+plt.ylabel("Temperatura")
+plt.title("Grafico de dispesion")
+plt.show()
+
+fig, ax = plt.subplots()
+sns.scatterplot(data=air_pl, x="Wind", y="Temp",
+                hue="Month", palette='Set1')
+plt.xlabel("Viento")
+plt.ylabel("Temperatura")
+plt.title("Grafico de dispesion")
+plt.show()
+
+fig, ax = plt.subplots()
+sns.regplot(data=air_pl, x="Wind", y="Temp")
+plt.xlabel("Viento")
+plt.ylabel("Temperatura")
+plt.title("Grafico de dispesion con regresion")
+plt.show()
+
+fig, ax = plt.subplots()
+sns.regplot(data=air_pl, x="Ozone", y="Temp", order=2,
+            scatter_kws={'alpha':0.5, 'color':'blue'},
+            line_kws={'color':'red'})
+plt.xlabel("Ozono")
+plt.ylabel("Temperatura")
+plt.title("Grafico de dispesion con regresion polinomial")
+plt.show()
+
+# Ajusta col_wrap al número de columnas que quieras (ej: 3)
+g = sns.lmplot(
+  data = air_pl,
+  x = "Wind",
+  y = "Temp",
+  hue = "Month",
+  col = "Month",
+  col_wrap = 3,      # <-- número de columnas por fila
+  palette = "Set1",
+  height = 4,
+  aspect = 1
+)
+
+g.set_axis_labels("Viento", "Temperatura")
+g.fig.suptitle("Grafico de dispersion", y = 1.02)
+g.tight_layout()
+g
+```
+
+```{python}
+fig, ax = plt.subplots()
+sns.pointplot(data=airquality, x="Month", y="Temp",
+              errorbar=("ci",95), estimator='mean',
+              linestyles='none',
+              capsize=0.0, color="black", 
+              err_kws={'linewidth': 1.5})
+plt.xlabel("Mes")
+plt.ylabel("Temperatura")
+plt.title("Media y IC de Temperatura por Mes")
+plt.show()
+# plt.savefig("figs/Seaborn_Pointplot.png", dpi=300)
+```
+
+Para salvar los graficos se usa `plt.savefig()` o `fig.savefig()`, donde las extensiones mas usadas son `.png` y `.tiff`. El argumento `dpi` permite controlar la resolucion.
+
+## plotnine
+
+El paquete **plotnine** es el homologo a **ggplot2** de **R**. Este se basa en la gramatica de graficos (grammar of graphics). 
+
+La estructura basica de cualquier grafico es:
+
+```{python}
+#| eval: false
+
+ggplot(data = <DATA>) +
+  <GEOM_FUNCTION>(mapping = aes(<MAPPINGS>),
+                  stat = <STAT>, position = <POSITION>) +
+  <FACET_FUNCTION> +
+  <SCALE_FUNCTION> +
+  <THEME_FUNCTION>
+```
+
+donde las partes principales son `ggplot` y `geom_*`, el resto no son necesarias. Dentro de `geom_*` se mapean la variables del DataFrame a los argumentos de la funcion (x, y, col, fill, size, shape).
+
+### Histograma
+
+Para datos numericos continuos
+
+```{python}
+p = (p9.ggplot(data = airquality, mapping = p9.aes(x="Temp")) +
+  p9.geom_histogram())
+p
+
+(p9.ggplot(airquality,p9.aes(x="Temp")) +
+  p9.geom_histogram(bins = 20,color="black",fill="blue"))
+
+(p9.ggplot(airquality,p9.aes(x="Temp")) +
+  p9.geom_histogram(binwidth = 2,color="black",fill="blue"))
+
+(p9.ggplot(airquality,p9.aes(x="Temp")) +
+  p9.geom_histogram(bins = 20,color="black",fill="blue") +
+  p9.facet_wrap("Month"))
+
+(p9.ggplot(airquality,p9.aes(x="Temp",y=p9.after_stat("density"))) +
+  p9.geom_histogram(bins = 20,color="black",fill="blue"))
+
+(p9.ggplot(airquality,p9.aes(x="Temp",y=p9.after_stat("density"))) +
+  p9.geom_histogram(bins = 20,color="black",fill="blue") +
+  p9.geom_density(color="red"))
+
+(p9.ggplot(titanic, p9.aes(x = "Age", fill = "Survived")) +
+  p9.facet_grid("Sex ~ Pclass") +
+  p9.geom_density(alpha = 0.5))
+```
+
+### Barras
+
+Para datos categoricos
+
+```{python}
+(p9.ggplot(dat1, p9.aes("Gender",fill="Smoke")) + 
+  p9.geom_bar(position = "fill"))
+
+(p9.ggplot(dat1, p9.aes("Gender",fill="Smoke")) + 
+  p9.geom_bar(position = "dodge"))
+
+(p9.ggplot(titanic, p9.aes(x = "Pclass", fill = "Survived")) + 
+  p9.geom_bar())
+
+(p9.ggplot(titanic, p9.aes(x = "Sex", fill = "Survived")) + 
+  p9.facet_wrap("Pclass") + 
+  p9.geom_bar())
+```
+
+### Boxplot
+
+Para datos numericos continuos que normalmente se separan por una variable categorica
+
+```{python}
+(p9.ggplot(air_pl,p9.aes(y="Temp")) +
+  p9.geom_boxplot())
+
+(p9.ggplot(air_pl,p9.aes(x = "Month",y = "Temp")) +
+  p9.geom_boxplot())
+
+(p9.ggplot(air_pl,p9.aes(x = "Month",y = "Temp")) +
+  p9.geom_boxplot(fill="white",color="red") +
+  p9.labs(x="Mes",y="Temperatura") +
+  p9.theme_bw())
+```
+
+### Dispersion
+
+Para datos numericos continuos
+
+```{python}
+(p9.ggplot(airquality, p9.aes("Ozone","Temp")) + 
+  p9.geom_point())
+
+(p9.ggplot(airquality, p9.aes("Ozone","Temp",color="factor(Month)")) + 
+  p9.geom_point())
+
+(p9.ggplot(airquality, p9.aes("Wind","Temp")) + 
+  p9.geom_point() + 
+  p9.geom_smooth(method = "lm"))
+
+(p9.ggplot(airquality, p9.aes("Ozone","Temp")) + 
+  p9.geom_point() + 
+  p9.geom_smooth(method = "lm", formula = "y ~ x + I(x**2)"))
+
+(p9.ggplot(airquality, p9.aes("Wind","Temp")) + 
+  p9.geom_point() + 
+  p9.geom_smooth(method = "lm") + 
+  p9.facet_wrap("Month"))
+```
+
+
+### Graficos estadisticos
+
+Para resumir los datos
+
+```{python}
+(p9.ggplot(airquality, p9.aes("Month", "Temp")) +
+  p9.stat_summary(fun_y = np.mean,
+                  geom = "point",
+                  color = "black") +
+  p9.stat_summary(fun_data = "mean_cl_normal",
+                  geom = "errorbar",
+                  width = 0.2) +
+  p9.theme_bw())
+
+(p9.ggplot(airquality, p9.aes("Month", "Temp")) +
+  p9.stat_summary(fun_data = "mean_cl_normal",
+                  fun_args = {'confidence_interval': .95},
+                  geom = "pointrange",
+                  color = "red",
+                  size=1) +
+  p9.theme_bw())
+```
+
+### Salvando graficos
+
+Funciones para salvar graficos, donde las extensiones mas usadas son `.png` y `.tiff`. Por defecto `.ggsave()` salva el ultimo grafico creado, a menos que se haya guardado el grafico en un objeto y se le pase dicho objeto al argumento `self`.
+
+```{python}
+p9.ggsave(self = p, filename = "figs/Testgg.png",
+          dpi = 300, width = 7, height = 4, units = "in")
+```
+

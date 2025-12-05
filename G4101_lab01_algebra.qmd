@@ -1,0 +1,95 @@
+---
+title: "Lab 1: Algebra"
+author: "Maximiliano Garnier Villarreal"
+lang: es
+toc: true
+toc-depth: 3
+toc-title: Contenidos
+number-sections: true
+highlight-style: pygments
+theme: sandstone
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Codigo"
+    code-tools: true
+    html-math-method: katex
+  typst: default
+  docx: default
+execute:
+  warning: false
+  error: false
+  echo: true
+---
+
+# Algebra lineal
+
+Para trabajar con vectores y matrices en **Python** se pueden usar listas o arreglos de **numpy** y funciones de **scipy.linalg**.
+
+```{python}
+import numpy as np
+from scipy import linalg
+import pandas as pd
+```
+
+## Vectores
+
+Para sumar (`+`), restar (`-`) o multiplicar (`*`) vectores elemento por elemento o para el producto punto (`np.dot()`) recordar que se requiere que los vectores tengan la misma dimension.
+
+```{python}
+a = np.arange(1,21)          # numeros enteros consecutivos
+b = np.arange(0,21,4)        # numeros del 0 al 20 cada 4
+c = np.arange(30,51,4)
+d = np.arange(50,19,-5)      # numeros del 50 al 20 cada 5 (decreciente)
+e = np.repeat(12,8)          # numero 12 repetido 8 veces
+f = np.array([1,3,5,7])      # numeros cualquiera
+
+a * 5
+a + 5
+b * c
+np.dot(b,c)  # producto punto
+```
+
+## Matrices
+
+Para matrices recordar que para sumar o restar deben tener las mismas dimensiones y para multiplicar (`@` o `np.matmul()`) deben cumplir $A(m,n) \cdot B(n,p)$.
+
+```{python}
+A = np.array([[1, 5], [3, 7]])
+A
+
+linalg.det(A)    # determinante de matriz
+linalg.eig(A)    # eigen values y vectors de A
+linalg.inv(A)    # inversa de A
+A.T              # transpuesta de A
+
+A[0,]            # fila 1, todas las columnas (todas las columnas)
+A[1,0]           # fila 2, columna 1 (1 elemento)
+A[1,0] = 15      # reemplaza el elemento en fila 2 columna 1 por 15
+A
+
+
+B = np.array([[11, 15], [13, 17]])
+  
+A + B   # suma de matrices
+A @ B # multiplicacion de matrices
+A @ np.array([[2],[5]]) # multplicacion de matriz y vector
+```
+
+Arreglos (vectores) se pueden convertir en matrices usando `np.reshape()`, donde se especifican las dimensiones de la nueva matriz/arreglo. Si se quiere especificar solo una dimension, se puede usar `-1` para que **Python** calcule automaticamente la otra dimension.
+
+```{python}
+a.reshape(4,5)  # convierte vector a matriz de 4 filas y 5 columnas
+
+a.reshape(-1,4)  # convierte vector a matriz con 4 columnas y filas automáticas
+```
+
+Si se tiene un dataframe de **pandas**, con solo columnas numericas, se puede convertir a matriz usando el metodo `df.to_numpy()`.
+
+```{python}
+datos = pd.read_csv("data/ABOC.csv")
+ 
+C = datos.to_numpy() # convierte dataframe en matriz
+C
+```
