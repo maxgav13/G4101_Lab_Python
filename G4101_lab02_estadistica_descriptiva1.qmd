@@ -1,0 +1,219 @@
+---
+title: "Lab 2: Estadistica Descriptiva 1"
+author: "Maximiliano Garnier Villarreal"
+lang: es
+toc: true
+toc-depth: 3
+toc-title: Contenidos
+number-sections: true
+highlight-style: pygments
+theme: sandstone
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Codigo"
+    code-tools: true
+    html-math-method: katex
+  pdf: 
+    prefer-html: false
+  docx: default
+execute:
+  warning: false
+  error: false
+  echo: true
+---
+
+# Paquetes
+
+```{python}
+#| label: setup
+#| include: false
+
+import pandas as pd
+import polars as pl
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotnine as p9
+import statistics
+from scipy import stats
+from statsmodels import robust
+
+from plotnine.data import penguins
+```
+
+# Estadistica descriptiva
+
+## Datos categoricos
+
+### Tabla de frecuencias
+
+La forma numerica de resumir datos categoricos es por medio de tablas de frecuencias (1 variable) o tablas de contingencia (2 variables). Para generar tablas de frecuencias en **Python** se puede usar `value_counts()` de **pandas** o `crosstab()` para tablas de contingencia.
+
+```{python}
+tabla = penguins['species'].value_counts().reset_index(name='frecuencia')
+
+tabla['frecuencia_cum'] = tabla['frecuencia'].cumsum()
+tabla['porcentaje'] = (tabla['frecuencia'] / tabla['frecuencia'].sum()) * 100
+tabla['porcentaje_cum'] = tabla['porcentaje'].cumsum()
+
+print(tabla)
+```
+
+```{python}
+xtab = pd.crosstab(penguins['species'], 
+                   penguins['island'], 
+                   margins=True,
+                   normalize=False # 'index', 'columns', 'all', False
+                   )
+
+print(xtab)
+```
+
+### Graficos
+
+#### Barras
+
+Para `geom_bar` el argumento `position` puede tener cualquiera de estos tres valores: `stack`, `dodge` o `fill`, para cuando se visualizan 2 variables categoricas.
+
+```{python}
+(p9.ggplot(penguins, p9.aes("species", fill = "island")) +
+  p9.geom_bar() +
+  p9.labs(y='Frecuencia absoluta') +
+  p9.scale_fill_brewer(type='qual', palette='Set1'))
+
+(p9.ggplot(penguins, p9.aes("species", fill = "island")) +
+  p9.geom_bar(position = 'fill') +
+  p9.labs(y='Frecuencia relativa') +
+  p9.scale_fill_brewer(type='qual', palette='Set1'))
+```
+
+## Datos continuos
+
+### Tabla de Frecuencias
+
+Para tablas de frecuencias con datos numericos estos deben ser separados en clases (*bins*) y sobre estas clases se genera la tabla de frecuencias. Se debe discretizar la variable, ya sea en clases definidas o numero de clases, sobre esta nueva variable se usa `value_counts()`.
+
+```{python}
+series = pd.Series(penguins['flipper_length_mm'].dropna())
+bins = np.arange(170, 240, 5) # rango y ancho de las clases
+bins = 10 # numero de clases
+
+binned_data = pd.cut(series, bins=bins, right=True, include_lowest=True)
+tabla = binned_data.value_counts().sort_index()
+tabla_df = tabla.to_frame(name='frecuencia')
+
+tabla_df['frecuencia_cum'] = tabla_df['frecuencia'].cumsum()
+tabla_df['porcentaje'] = (tabla_df['frecuencia'] / tabla_df['frecuencia'].sum()) * 100
+tabla_df['porcentaje_cum'] = tabla_df['porcentaje'].cumsum()
+
+print(tabla_df)
+```
+
+### Graficos
+
+#### Histograma
+
+Dentro de `geom_histogram` hay 3 opciones para definir la discretizacion:
+
+-   `bins` = Numero de clases
+-   `binwidth` = El ancho de las clases
+-   `breaks` = Un vector con los puntos donde separar los datos
+
+*Frecuencias absolutas*
+
+```{python}
+(p9.ggplot(penguins, p9.aes(x = "flipper_length_mm")) + 
+  p9.geom_histogram(breaks = np.arange(170, 240, 5), 
+                    color='black', fill='lightblue') +
+  p9.labs(x='Largo de aleta (mm)', y='Frecuencia absoluta'))
+```
+
+*Frecuencias relativas*
+
+```{python}
+(p9.ggplot(penguins, p9.aes(x = "flipper_length_mm",
+                            y = p9.after_stat("count/sum(count)"))) + 
+  p9.geom_histogram(breaks = np.arange(170, 240, 5), 
+                    color='black', fill='lightblue') +
+  p9.labs(x='Largo de aleta (mm)', y='Frecuencia relativa'))
+
+```
+
+#### Grafico de caja
+
+```{python}
+(p9.ggplot(penguins, p9.aes(x = "species", y = "bill_length_mm")) +
+  p9.geom_boxplot())
+
+(p9.ggplot(penguins, p9.aes(x = "species", y = "bill_length_mm")) +
+  p9.geom_boxplot() +
+  p9.stat_summary(fun_y = np.mean, geom = "point", 
+                  color = "red", size = 5, shape = "+"))
+```
+
+### Medidas de tendencia central
+
+Se muestran diferentes funciones para caracterizar la tendencia central en un vector corriente, uno con un valor atipico y otro con un valor faltante, para ver como se ven afectadas las diferentes estadisticas. En general se usan funciones de **numpy**, **pandas**, **statistics** y **scipy.stats**.
+
+```{python}
+myvector = np.array([22,10,10,16,15,15,24,19,15,19,18,16,18,12,17,17,11,18])
+myseries = pd.Series(myvector)
+
+myseries.describe()
+np.mean(myvector)
+statistics.median(myvector)
+stats.gmean(myvector) # media geometrica
+statistics.geometric_mean(myvector)
+
+
+outlier = np.append(myvector,200)
+np.mean(outlier)
+statistics.median(outlier)
+stats.gmean(outlier) # media geometrica
+
+miss = np.append(myvector,np.nan)
+np.nanmean(miss)
+statistics.median(miss)
+stats.gmean(miss[~np.isnan(miss)]) # media geometrica sin NaN
+```
+
+### Medidas de dispersion
+
+```{python}
+np.var(myvector, ddof=1) # varianza muestral
+np.std(myvector, ddof=1) # desviacion estandar muestral
+myseries.var() # varianza muestral
+myseries.std() # desviacion estandar muestral
+statistics.variance(myvector) # varianza muestral
+stats.iqr(myvector) # rango intercuartil
+robust.mad(myvector, center=np.median(myvector)) # desviacion absoluta de la mediana
+myseries.std() / myseries.mean() # coeficiente de variacion
+
+np.std(outlier, ddof=1) # desviacion estandar muestral
+robust.mad(outlier, center=np.median(outlier)) # desviacion absoluta de la mediana
+```
+
+### Asimetria y Curtosis
+
+```{python}
+stats.kurtosis(myvector)
+stats.skew(myvector)
+```
+
+### Descripciones mas generales
+
+Se muestran varias funciones que generan un resumen general de un vector o DataFrame.
+
+#### Vector
+
+```{python}
+myseries.describe()
+```
+
+#### DataFrame
+
+```{python}
+penguins.describe()
+```

@@ -246,6 +246,8 @@ print(s4.describe())
 Con series se pueden crear vectores categoricos, tanto nominales como ordinales (**pandas**). Estos son preferibles a los vectores de tipo objeto (strings) ya que ocupan menos espacio en memoria y permiten hacer operaciones especificas para datos categoricos.
 
 ```{python}
+dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 
+        'Lunes', 'Sabado', 'Domingo', 'Miercoles', 'Viernes']
 dias_cat = pd.Series(dias, dtype="category")
 
 dias_cat
@@ -670,7 +672,8 @@ g
 ```{python}
 fig, ax = plt.subplots()
 sns.countplot(data = dat1, x = "Gender", hue="Smoke",
-              dodge=True, stat="count",              
+              dodge=True, 
+              stat="count", # 'count','percent','probability','proportion'       
               palette = "Set1")
 plt.xlabel("Genero")
 plt.ylabel("Conteo")
