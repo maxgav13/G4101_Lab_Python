@@ -469,7 +469,7 @@ dat1_pl.select(
   cs.exclude(pl.col("Smoke"))
   )
 
-titanic.with_columns(
+titanic = titanic.with_columns(
   pl.col("Pclass","Survived","Sex")
   .cast(pl.String)
   .cast(pl.Categorical)
@@ -537,7 +537,7 @@ airquality.sort_values(by="Temp", ascending=False)
 dat1.drop(columns=["Smoke"])
 dat1.loc[:, dat1.columns != "Smoke"]
 
-titanic_pd[["Pclass", "Survived", "Sex"]].astype("category")
+titanic_pd[["Pclass", "Survived", "Sex"]] = titanic_pd[["Pclass", "Survived", "Sex"]].astype("category")
 
 mapeo_mes = {
   5: "Mayo",
