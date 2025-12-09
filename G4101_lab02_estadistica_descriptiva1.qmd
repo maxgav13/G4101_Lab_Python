@@ -41,6 +41,8 @@ from scipy import stats
 from statsmodels import robust
 
 from plotnine.data import penguins
+
+p9.theme_set(p9.theme_bw())
 ```
 
 # Estadistica descriptiva
@@ -89,6 +91,18 @@ Para `geom_bar` el argumento `position` puede tener cualquiera de estos tres val
   p9.scale_fill_brewer(type='qual', palette='Set1'))
 ```
 
+```{python}
+fig, ax = plt.subplots()
+sns.countplot(data = penguins, x = "species", hue="island",
+              dodge=True, 
+              stat="count", # 'count','percent','probability','proportion'       
+              palette = "Set1")
+plt.xlabel("Especie")
+plt.ylabel("Conteo")
+plt.title("Conteo por especie")
+plt.show()
+```
+
 ## Datos continuos
 
 ### Tabla de Frecuencias
@@ -121,6 +135,10 @@ Dentro de `geom_histogram` hay 3 opciones para definir la discretizacion:
 -   `binwidth` = El ancho de las clases
 -   `breaks` = Un vector con los puntos donde separar los datos
 
+Dentro de `sns.histplot` hay 2 opciones similares:
+-   `bins` = Numero de clases o un vector con los puntos donde separar los datos
+-   `binwidth` = El ancho de las clases
+
 *Frecuencias absolutas*
 
 ```{python}
@@ -130,15 +148,37 @@ Dentro de `geom_histogram` hay 3 opciones para definir la discretizacion:
   p9.labs(x='Largo de aleta (mm)', y='Frecuencia absoluta'))
 ```
 
+```{python}
+fig, ax = plt.subplots()
+sns.histplot(data = penguins, x = "flipper_length_mm", 
+             bins = np.arange(170, 240, 5), # puede ser el numero de bins tambien
+             color = "blue", edgecolor = "black", kde=False)
+plt.xlabel("Largo de aleta (mm)")
+plt.ylabel("Frecuencia absoluta")
+plt.title("Histograma de largo de aleta")
+plt.show()
+```
+
 *Frecuencias relativas*
 
 ```{python}
 (p9.ggplot(penguins, p9.aes(x = "flipper_length_mm",
                             y = p9.after_stat("count/sum(count)"))) + 
-  p9.geom_histogram(breaks = np.arange(170, 240, 5), 
+  p9.geom_histogram(breaks=np.arange(170, 240, 5),
                     color='black', fill='lightblue') +
   p9.labs(x='Largo de aleta (mm)', y='Frecuencia relativa'))
+```
 
+```{python}
+fig, ax = plt.subplots()
+sns.histplot(data = penguins, x = "flipper_length_mm", 
+             bins = np.arange(170, 240, 5), # puede ser el numero de bins tambien
+             color = "blue", edgecolor = "black", 
+             kde=False, stat="probability")
+plt.xlabel("Largo de aleta (mm)")
+plt.ylabel("Frecuencia relativa")
+plt.title("Histograma de largo de aleta")
+plt.show()
 ```
 
 #### Grafico de caja
@@ -150,7 +190,19 @@ Dentro de `geom_histogram` hay 3 opciones para definir la discretizacion:
 (p9.ggplot(penguins, p9.aes(x = "species", y = "bill_length_mm")) +
   p9.geom_boxplot() +
   p9.stat_summary(fun_y = np.mean, geom = "point", 
-                  color = "red", size = 5, shape = "+"))
+                  color = "red", size = 5, shape = "+") +
+  p9.labs(x='Especie', y='Largo del pico (mm)',
+          title='Boxplot de largo del pico por especie'))
+```
+
+```{python}
+fig, ax = plt.subplots()
+sns.boxplot(data = penguins, x = "species", y = "bill_length_mm", 
+            palette = "Set2")
+plt.xlabel("Especie")
+plt.ylabel("Largo del pico (mm)")
+plt.title("Boxplot de largo del pico por especie")
+plt.show()
 ```
 
 ### Medidas de tendencia central
