@@ -50,17 +50,17 @@ from great_tables import GT
 Para acceder a funciones de paquetes se usa la notacion de punto (`.`), donde primero se escribe el nombre del paquete (o su abreviatura) seguido de un punto y despues el nombre de la funcion. Esta misma notación se usa para acceder a métodos específicos de ciertos objetos.
 
 ```{python}
-1+2
-1-2
-1*2
-1/2
-np.sqrt(125)
+print(1+2)
+print(1-2)
+print(1*2)
+print(1/2)
+print(np.sqrt(125))
 
 import math
 
-math.log10(10)
-math.exp(3)
-math.sqrt(9)
+print(math.log10(10))
+print(math.exp(3))
+print(math.sqrt(9))
 ```
 
 
@@ -71,7 +71,7 @@ Objetos se pueden crear usando el operador `=`. Al crear un objeto este no se de
 ```{python}
 x = 14
 y = 2
-x
+print(x)
 x + y
 z = x + y
 print(z)
@@ -95,6 +95,18 @@ formatted_pi = f"El valor de pi con 2 decimales es {pi:.2f}."
 print(formatted_pi)
 ```
 
+Otra forma de formatear cadenas es usando el metodo `.format()`, donde los valores a insertar se pasan como argumentos al metodo, en el orden en que aparecen. Los especificadores de formato funcionan de la misma manera.
+
+```{python}
+temperatura = 23.56789
+ciudad = "San Jose"
+formatted_temp1 = "La temperatura actual en {} es {:.1f}°C".format(ciudad,temperatura)
+formatted_temp2 = f"La temperatura actual en {ciudad} es {temperatura:.1f}°C."
+
+print(formatted_temp1)
+print(formatted_temp2)
+```
+
 ## Funciones Lambda 
 
 Funciones Lambda son funciones anonimas que se pueden definir en una sola linea de codigo. Estas son utiles para operaciones simples y rapidas, especialmente cuando se usan como argumentos en otras funciones, cuando no se necesita reutilizar la funcion, o para operaciones cortas.
@@ -116,10 +128,11 @@ Objetos logicos permiten hacer comparaciones o pruebas, donde usualmente el resu
 
 ```{python}
 x = 4
-x == 4
-x != 4
-x < 4
-x <= 5
+
+print(x == 4)
+print(x != 4)
+print(x < 4)
+print(x <= 5)
 ```
 
 
@@ -132,9 +145,9 @@ En **Python** las listas se indexan empezando en 0, a diferencia de **R** donde 
 ```{python}
 lst = [x, y, "Hola", [1,2,3], np.array([4,5,6])]
 
-lst[0]
-lst[3]
-lst[3][1]
+print(lst[0])
+print(lst[3])
+print(lst[3][1])
 ```
 
 Las listas tienen diferentes métodos para manipularlas, como agregar (`.append()`) o eliminar (`.remove()`) elementos, ordenar los elementos (`.sort()`), etc.
@@ -142,7 +155,7 @@ Las listas tienen diferentes métodos para manipularlas, como agregar (`.append(
 ```{python}
 lst.append(100)
 lst.remove("Hola")
-lst
+print(lst)
 ```
 
 
@@ -158,8 +171,8 @@ dic = {"Numero1": x,
        "Arreglo": np.array([4,5,6])
        }
 
-dic["Numero1"]
-dic["Lista"][1]
+print(dic["Numero1"])
+print(dic["Lista"][1])
 ```
 
 
@@ -225,6 +238,7 @@ Con **polars** se pueden crear series usando `pl.Series()`, la principal diferen
 ```{python}
 s3 = pl.Series(np.array([11,12,13,14,15]))
 s4 = pl.Series(s2)
+
 print(s3)
 print(s4)
 ```
@@ -250,16 +264,16 @@ dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes',
         'Lunes', 'Sabado', 'Domingo', 'Miercoles', 'Viernes']
 dias_cat = pd.Series(dias, dtype="category")
 
-dias_cat
-dias_cat.cat.categories
-dias_cat.cat.codes
+print(dias_cat)
+print(dias_cat.cat.categories)
+print(dias_cat.cat.codes)
 ```
 
 ```{python}
 dias_pl = pl.Series(dias, dtype=pl.Categorical)
 
-dias_pl
-dias_pl.cat.get_categories()
+print(dias_pl)
+print(dias_pl.cat.get_categories())
 ```
 
 Para crear factores ordenados se usa el argumento `categories` para definir los niveles y `ordered=True` para indicar que es un factor ordenado.
@@ -269,9 +283,9 @@ ordenado = pd.Series(
   pd.Categorical(['Bajo','Medio','Alto', 'Medio', 'Bajo', 'Bajo', 'Alto'],categories=['Bajo','Medio','Alto'],
   ordered = True))
 
-ordenado
-ordenado.cat.categories
-ordenado.cat.codes
+print(ordenado)
+print(ordenado.cat.categories)
+print(ordenado.cat.codes)
 ```
 
 Para Series de datos categoricos un metodo util es `.value_counts()`.
@@ -395,6 +409,7 @@ Para importar datos desde archivos externos se usan diferentes funciones dependi
 ```{python}
 dat1 = pd.read_csv("data/LungCapData2.csv")
 titanic = pl.read_csv("data/titanic.csv")
+titanic_pd = titanic.to_pandas()
 ```
 
 
@@ -410,64 +425,21 @@ Para las pruebas logicas se usan los operadores `&` (AND), `|` (OR) y `~` (NOT),
 
 ### Polars
 
+```{python}
+dat1_pl = pl.DataFrame(dat1)
+air_pl = pl.DataFrame(airquality)
+```
+
 En general **polars** usa la funcion `pl.col("*")` para referirse a las columnas de un DataFrame, a esto se le llama expresiones. Dentro de `pl.col()` se pueden usar nombres de columnas, numeros de columnas, o selectores del paquete `polars.selectors` (importado como `cs`).
 
 El metodo `.select()` tiene dos funciones principales: seleccionar/crear variables y resumir variables. Para crear o modificar variables se usa `.with_columns()`. A la hora de crear nuevas variables se pueden nombrar usando `.alias()` (metodo preferido) o asignandolas con el `=`.
 
-Para filtrar datos de acuerdo a criterios se usa el metodo `.filter()`, asi como operadores logicos (`>`, `<`, `==`), selectores auxiliares (`cs`) y funciones auxiliares (`.is_between()`, `.is_in([])`, etc.). 
-
-Para ordenar los datos se usa `.sort()`.
-
-Muchas veces se tiene una variable agrupadora (texto/categorica) en los datos y se requiere calcular estadisticas por grupo, para esto se usa `.group_by()` junto con `.agg()`.
-
-
 ```{python}
-dat1_pl = pl.DataFrame(dat1)
-air_pl = pl.DataFrame(airquality)
+print(dat1_pl.select(pl.col("Age")))
 
-dat1_pl.select(pl.col("Age"))
-dat1_pl.select(pl.col("Age").mean().alias("Mean_Age"))
+print(dat1_pl.select(pl.col("Age").mean().alias("Mean_Age")))
 
-dat1_pl.with_columns(Altura = pl.col("Height")*2.54)
-
-dat1_pl.group_by(
-  pl.col("Gender")
-  ).agg(
-    pl.col("Age").mean().alias("Mean_Age")
-    )
-
-dat1_pl.group_by(
-  pl.col("Gender","Smoke")
-  ).agg(
-    pl.col("Age").mean().alias("Mean_Age")
-    )
-
-dat1_pl.group_by(
-  pl.col("Gender")
-  ).agg(
-    pl.len().alias("N"),
-    pl.col("Age","Height","LungCap").mean().name.suffix("_mean"),
-    )
-
-air_pl.filter(pl.col("Temp") > 85)
-
-air_pl.filter((pl.col("Temp") > 85) & (pl.col("Wind") > 10))
-
-air_pl.filter(
-  (pl.col("Temp") > 85) & (pl.col("Wind") > 10)
-  ).select(
-    pl.col("Ozone","Solar_R")
-    )
-
-air_pl.filter(pl.col('Temp').is_between(60,70))
-
-air_pl.sort("Temp")
-air_pl.sort("Temp", descending=True)
-
-dat1_pl.drop(pl.col("Smoke"))
-dat1_pl.select(
-  cs.exclude(pl.col("Smoke"))
-  )
+print(dat1_pl.with_columns(Altura = pl.col("Height")*2.54))
 
 titanic = titanic.with_columns(
   pl.col("Pclass","Survived","Sex")
@@ -488,54 +460,87 @@ air_pl = air_pl.with_columns(
   .replace_strict(mapeo_mes)
   .cast(pl.Categorical)
   )
+print(air_pl)
+```
+
+Para filtrar datos de acuerdo a criterios se usa el metodo `.filter()`, asi como operadores logicos (`>`, `<`, `==`), selectores auxiliares (`cs`) y funciones auxiliares (`.is_between()`, `.is_in([])`, etc.). 
+
+```{python}
+print(air_pl.filter(pl.col("Temp") > 85))
+
+print(air_pl.filter((pl.col("Temp") > 85) & (pl.col("Wind") > 10)))
+
+print(air_pl.filter(
+  (pl.col("Temp") > 85) & (pl.col("Wind") > 10)
+  ).select(
+    pl.col("Ozone","Solar_R")
+    ))
+
+print(air_pl.filter(pl.col('Temp').is_between(60,70)))
 
 air_pl.filter(pl.col('Month').is_in(['Mayo','Julio']))
+```
+
+Para ordenar los datos se usa `.sort()` y para deseleccionar columnas se usa `.drop()` o el selector `cs.exclude()`.
+
+```{python}
+print(air_pl.sort("Temp"))
+
+print(air_pl.sort("Temp", descending=True))
+
+print(dat1_pl.drop(pl.col("Smoke")))
+
+print(dat1_pl.select(
+  cs.exclude(pl.col("Smoke"))
+  ))
+```
+
+Muchas veces se tiene una variable agrupadora (texto/categorica) en los datos y se requiere calcular estadisticas por grupo, para esto se usa `.group_by()` junto con `.agg()`.
+
+
+```{python}
+print(dat1_pl.group_by(
+  pl.col("Gender")
+  ).agg(
+    pl.col("Age").mean().alias("Mean_Age")
+    ))
+
+print(dat1_pl.group_by(
+  pl.col("Gender","Smoke")
+  ).agg(
+    pl.col("Age").mean().alias("Mean_Age")
+    ))
+
+print(dat1_pl.group_by(
+  pl.col("Gender")
+  ).agg(
+    pl.len().alias("N"),
+    pl.col("Age","Height","LungCap").mean().name.suffix("_mean"),
+    ))
 ```
 
 
 ### Pandas
 
-En general **pandas** usa el nombre del DataFrame seguido de corchetes cuadrados `[]` para referirse a las columnas de un DataFrame. Dentro de los corchetes se pueden usar nombres de columnas, numeros de columnas, o pruebas logicas.
-
-Para resumir variables se usa el metodo `.aggregate()` o `.agg()`, que se puede combinar con `.groupby()` para obtener medidas por grupos. Para crear o modificar variables se usa `.assign()` (metodo preferido) o asignandolas con el `df["*"] =`. Para ordenar los datos se usa `.sort_values()`. Hay otros metodos adicionales que se pueden acceder usando `.*` sobre la Serie (variable) respectiva (`.between()`, `.isin([])`, etc.).
+En general **pandas** usa el nombre del DataFrame seguido de corchetes cuadrados `[]` para referirse a las columnas de un DataFrame. Dentro de los corchetes se pueden usar nombres de columnas, numeros de columnas, o pruebas logicas. Hay otros metodos adicionales que se pueden acceder usando `.*` sobre la Serie (variable) respectiva (`.between()`, `.isin([])`, etc.).
 
 ```{python}
-titanic_pd = titanic.to_pandas()
+print(dat1['Age'])
+print(dat1.loc[:, 'Age'])
+print(dat1.Age)
 
-dat1['Age']
-dat1.loc[:, 'Age']
-dat1.Age
+print(dat1[['Age','Height']])
+print(dat1.iloc[:, [0,2]])
 
-dat1['Age'].mean()
+print(airquality[airquality["Temp"] > 85])
 
-dat1.assign(Altura = dat1["Height"]*2.54)
-dat1['Altura'] = dat1["Height"]*2.54
+print(airquality[(airquality["Temp"]>85) & (airquality["Wind"]>10)])
 
-dat1.groupby("Gender")["Age"].aggregate("mean")
+print(airquality[(airquality["Temp"]>85) & (airquality["Wind"]>10)][["Ozone","Solar_R"]])
 
-dat1.groupby(["Gender","Smoke"])["Age"].agg("mean")
+print(airquality.loc[(airquality["Temp"]>85) & (airquality["Wind"]>10),["Ozone","Solar_R"]])
 
-dat1.groupby("Gender").agg(
-  N=("Gender", "size"),
-  Age_mean=("Age", "mean"),
-  Height_mean=("Height", "mean"),
-  LungCap_mean=("LungCap", "mean"),
-).reset_index()
-
-airquality[airquality["Temp"] > 85]
-
-airquality[(airquality["Temp"]>85) & (airquality["Wind"]>10)]
-
-airquality[(airquality["Temp"]>85) & (airquality["Wind"]>10)][["Ozone","Solar_R"]]
-airquality.loc[(airquality["Temp"]>85) & (airquality["Wind"]>10),["Ozone","Solar_R"]]
-
-airquality[airquality["Temp"].between(60, 70)]
-
-airquality.sort_values(by="Temp")
-airquality.sort_values(by="Temp", ascending=False)
-
-dat1.drop(columns=["Smoke"])
-dat1.loc[:, dat1.columns != "Smoke"]
+print(airquality[airquality["Temp"].between(60, 70)])
 
 titanic_pd[["Pclass", "Survived", "Sex"]] = titanic_pd[["Pclass", "Survived", "Sex"]].astype("category")
 
@@ -549,7 +554,34 @@ mapeo_mes = {
 
 airquality["Month"].map(mapeo_mes).astype("category")
 
-airquality.loc[(airquality["Month"].isin([5,7]))]
+print(airquality.loc[(airquality["Month"].isin([5,7]))])
+```
+
+Para resumir variables se usa el metodo `.aggregate()` o `.agg()`, que se puede combinar con `.groupby()` para obtener medidas por grupos. Para crear o modificar variables se usa `.assign()` (metodo preferido) o asignandolas con el `df["*"] =`. Para ordenar los datos se usa `.sort_values()` y para deseleccionar columnas se usa `.drop()` o seleccionando las columnas que no se quieren. 
+
+```{python}
+print(dat1['Age'].mean())
+
+print(dat1.assign(Altura = dat1["Height"] * 2.54))
+print(dat1.assign(Altura = lambda x: x.Height * 2.54))
+dat1['Altura'] = dat1["Height"] * 2.54
+
+print(dat1.groupby("Gender")["Age"].aggregate("mean"))
+
+print(dat1.groupby(["Gender","Smoke"])["Age"].agg("mean"))
+
+print(dat1.groupby("Gender").agg(
+  N=("Gender", "size"),
+  Age_mean=("Age", "mean"),
+  Height_mean=("Height", "mean"),
+  LungCap_mean=("LungCap", "mean"),
+).reset_index())
+
+print(airquality.sort_values(by="Temp"))
+print(airquality.sort_values(by="Temp", ascending=False))
+
+print(dat1.drop(columns=["Smoke"]))
+print(dat1.loc[:, dat1.columns != "Smoke"])
 ```
 
 Ejemplos de encadenamiento (chaining) de operaciones comunes usando **pandas** y **polars**.
@@ -564,8 +596,10 @@ result_pd = (
     .agg(mean_temp=("Temp", "mean"), mean_wind=("Wind", "mean"))
     .sort_values("mean_temp", ascending=False)
 )
-result_pd
+print(result_pd)
+```
 
+```{python}
 # Polars: filtrar, crear columna y agregar por mes
 result_pl = (
     air_pl
@@ -578,7 +612,7 @@ result_pl = (
     ])
     .sort("mean_temp", descending=True)
 )
-result_pl
+print(result_pl)
 ```
 
 # Graficos
@@ -653,7 +687,9 @@ plt.xlabel("Temperatura")
 plt.ylabel("Frecuencia")
 plt.title("Histograma de Temperatura")
 plt.show()
+```
 
+```{python}
 # Histograma por mes (col_wrap controla cuántas columnas por fila)
 g = sns.displot(
   data=air_pl,
@@ -698,7 +734,9 @@ plt.xlabel("Viento")
 plt.ylabel("Temperatura")
 plt.title("Grafico de dispesion")
 plt.show()
+```
 
+```{python}
 fig, ax = plt.subplots()
 sns.scatterplot(data=air_pl, x="Wind", y="Temp",
                 hue="Month", palette='Set1')
@@ -706,14 +744,18 @@ plt.xlabel("Viento")
 plt.ylabel("Temperatura")
 plt.title("Grafico de dispesion")
 plt.show()
+```
 
+```{python}
 fig, ax = plt.subplots()
 sns.regplot(data=air_pl, x="Wind", y="Temp")
 plt.xlabel("Viento")
 plt.ylabel("Temperatura")
 plt.title("Grafico de dispesion con regresion")
 plt.show()
+```
 
+```{python}
 fig, ax = plt.subplots()
 sns.regplot(data=air_pl, x="Ozone", y="Temp", order=2,
             scatter_kws={'alpha':0.5, 'color':'blue'},
@@ -722,7 +764,9 @@ plt.xlabel("Ozono")
 plt.ylabel("Temperatura")
 plt.title("Grafico de dispesion con regresion polinomial")
 plt.show()
+```
 
+```{python}
 # Ajusta col_wrap al número de columnas que quieras (ej: 3)
 g = sns.lmplot(
   data = air_pl,
@@ -785,24 +829,36 @@ Para datos numericos continuos
 p = (p9.ggplot(data = airquality, mapping = p9.aes(x="Temp")) +
   p9.geom_histogram())
 p
+```
 
+```{python}
 (p9.ggplot(airquality,p9.aes(x="Temp")) +
   p9.geom_histogram(bins = 20,color="black",fill="blue"))
+```
 
+```{python}
 (p9.ggplot(airquality,p9.aes(x="Temp")) +
   p9.geom_histogram(binwidth = 2,color="black",fill="blue"))
+```
 
+```{python}
 (p9.ggplot(airquality,p9.aes(x="Temp")) +
   p9.geom_histogram(bins = 20,color="black",fill="blue") +
   p9.facet_wrap("Month"))
+```
 
+```{python}
 (p9.ggplot(airquality,p9.aes(x="Temp",y=p9.after_stat("density"))) +
   p9.geom_histogram(bins = 20,color="black",fill="blue"))
+```
 
+```{python}
 (p9.ggplot(airquality,p9.aes(x="Temp",y=p9.after_stat("density"))) +
   p9.geom_histogram(bins = 20,color="black",fill="blue") +
   p9.geom_density(color="red"))
+```
 
+```{python}
 (p9.ggplot(titanic, p9.aes(x = "Age", fill = "Survived")) +
   p9.facet_grid("Sex ~ Pclass") +
   p9.geom_density(alpha = 0.5))
@@ -815,13 +871,19 @@ Para datos categoricos
 ```{python}
 (p9.ggplot(dat1, p9.aes("Gender",fill="Smoke")) + 
   p9.geom_bar(position = "fill"))
+```
 
+```{python}
 (p9.ggplot(dat1, p9.aes("Gender",fill="Smoke")) + 
   p9.geom_bar(position = "dodge"))
+```
 
+```{python}
 (p9.ggplot(titanic, p9.aes(x = "Pclass", fill = "Survived")) + 
   p9.geom_bar())
+```
 
+```{python}
 (p9.ggplot(titanic, p9.aes(x = "Sex", fill = "Survived")) + 
   p9.facet_wrap("Pclass") + 
   p9.geom_bar())
@@ -834,10 +896,14 @@ Para datos numericos continuos que normalmente se separan por una variable categ
 ```{python}
 (p9.ggplot(air_pl,p9.aes(y="Temp")) +
   p9.geom_boxplot())
+```
 
+```{python}
 (p9.ggplot(air_pl,p9.aes(x = "Month",y = "Temp")) +
   p9.geom_boxplot())
+```
 
+```{python}
 (p9.ggplot(air_pl,p9.aes(x = "Month",y = "Temp")) +
   p9.geom_boxplot(fill="white",color="red") +
   p9.labs(x="Mes",y="Temperatura") +
@@ -851,18 +917,26 @@ Para datos numericos continuos
 ```{python}
 (p9.ggplot(airquality, p9.aes("Ozone","Temp")) + 
   p9.geom_point())
+```
 
+```{python}
 (p9.ggplot(airquality, p9.aes("Ozone","Temp",color="factor(Month)")) + 
   p9.geom_point())
+```
 
+```{python}
 (p9.ggplot(airquality, p9.aes("Wind","Temp")) + 
   p9.geom_point() + 
   p9.geom_smooth(method = "lm"))
+```
 
+```{python}
 (p9.ggplot(airquality, p9.aes("Ozone","Temp")) + 
   p9.geom_point() + 
   p9.geom_smooth(method = "lm", formula = "y ~ x + I(x**2)"))
+```
 
+```{python}
 (p9.ggplot(airquality, p9.aes("Wind","Temp")) + 
   p9.geom_point() + 
   p9.geom_smooth(method = "lm") + 
@@ -883,7 +957,9 @@ Para resumir los datos
                   geom = "errorbar",
                   width = 0.2) +
   p9.theme_bw())
+```
 
+```{python}
 (p9.ggplot(airquality, p9.aes("Month", "Temp")) +
   p9.stat_summary(fun_data = "mean_cl_normal",
                   fun_args = {'confidence_interval': .95},

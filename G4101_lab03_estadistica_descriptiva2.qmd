@@ -357,7 +357,7 @@ A = pd.DataFrame(
 A_df = A.stack().rename('count').reset_index()
 A_df.columns = ['Tipo', 'Capa', 'count']
 
-A_df_exp = df.loc[df.index.repeat(df['count'])].reset_index(drop=True).drop(columns='count')
+A_df_exp = A_df.loc[A_df.index.repeat(A_df['count'])].reset_index(drop=True).drop(columns='count')
 A_df_exp
 
 A_df_exp_pl = pl.from_pandas(A_df_exp)
