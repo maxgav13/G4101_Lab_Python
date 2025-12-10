@@ -1,0 +1,417 @@
+---
+title: "Lab 3: Estadistica Descriptiva 2"
+author: "Maximiliano Garnier Villarreal"
+lang: es
+toc: true
+toc-depth: 3
+toc-title: Contenidos
+number-sections: true
+highlight-style: pygments
+theme: sandstone
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Codigo"
+    code-tools: true
+    html-math-method: katex
+  pdf: 
+    prefer-html: false
+  docx: default
+execute:
+  warning: false
+  error: false
+  echo: true
+---
+
+# Paquetes
+
+```{python}
+#| label: setup
+#| include: false
+
+import pandas as pd
+import polars as pl
+import polars.selectors as cs
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotnine as p9
+import plotly.express as px
+import statistics
+from scipy import stats
+
+from great_tables.data import airquality
+
+p9.theme_set(p9.theme_bw())
+```
+
+# Estadistica descriptiva bivariable
+
+Vamos a usar los datos de `airquality`. Vamos a crear variables centradas y estandarizadas (z-scores) para las variables numericas.
+
+```{python}
+#| label: datos
+#| tbl-cap: Datos de airquality modificados
+
+airq = pl.from_pandas(airquality).with_columns(
+  pl.col("Month","Day").
+  cast(pl.String).
+  cast(pl.Categorical)
+  )
+
+num_cols = airq.select(cs.numeric()).columns
+
+exprs_c = [ (pl.col(c) - pl.col(c).mean()).alias(f"{c}_c") for c in num_cols ]
+exprs_z = [ ((pl.col(c) - pl.col(c).mean()) / pl.col(c).std()).alias(f"{c}_z") for c in num_cols ]
+
+airq = airq.with_columns(*(exprs_c + exprs_z))
+airq
+```
+
+Otra forma de crear las variables estandarizadas y centradas es usando `map_batches`.
+
+```{python}
+pl.from_pandas(airquality).with_columns(
+  pl.col("Month","Day").
+  cast(pl.String).
+  cast(pl.Categorical)
+  ).with_columns(
+    cs.numeric().
+    map_batches(lambda x: (x - x.mean()) / x.std()).name.suffix("_z"),
+    cs.numeric().
+    map_batches(lambda x: (x - x.mean())).name.suffix("_c")
+  )
+```
+
+Se seleccionan las variables numericas excluyendo las columnas con sufijos `_c` y `_z`.
+
+```{python}
+airq2 = airq.select(cs.numeric() & ~cs.ends_with(['_c','_z']))
+airq2_pd = airq2.to_pandas()
+```
+
+
+## Covarianza & Correlacion
+
+Dentro de las funciones para calcular covarianza y correlacion entre variables en **Python** se encuentran:
+
+- `stats.pearsonr(x, y)`: arroja el coeficiente de correlacion de Pearson y el p-valor asociado.
+- `np.corrcoef(x, y)`
+- `np.cov(x, y)`
+- `statistics.correlation(x, y)`
+- `pg.corr(x, y)`: arroja el coeficiente de correlacion de Pearson, Spearman o Kendall entre dos variables, así como resultados adicionales.
+
+Aqui se extraen las variables de interes:
+
+```{python}
+pair = airq.drop_nulls(subset=["Solar_R", "Temp"])
+
+x = pair["Solar_R"].to_numpy().ravel()
+y = pair["Temp"].to_numpy().ravel()
+
+print(stats.pearsonr(x, y))
+print(np.corrcoef(x, y)[0, 1])
+print(statistics.correlation(x, y))
+```
+
+Matrices de correlacion y covarianza del DataFrame con unicamente variables numericas. Es necesario eliminar los valores faltantes (`dropna()`).
+
+```{python cov-cor-mat}
+print(airq2_pd.dropna().cov())  # matriz de varianza-covarianza
+print(airq2_pd.dropna().corr()) # matriz de correlacion de Pearson
+```
+
+Grafico de correlacion
+
+```{python}
+plt.figure(figsize=(8,6))
+sns.heatmap(airq2_pd.dropna().corr(), annot=True, fmt=".2", cmap="coolwarm", center=0)
+plt.title("Matriz de Correlación de Pearson")
+plt.show()
+```
+
+```{python}
+fig = px.imshow(airq2_pd.dropna().corr(), 
+                color_continuous_scale=px.colors.diverging.RdBu_r,
+                title='Matriz de Correlación de Pearson')
+fig.show()
+```
+
+
+## Regresion
+
+Necesitamos importar funciones de statsmodels para ajustar modelos de regresion lineal y polinomial, y para evaluar su ajuste.
+
+```{python}
+import statsmodels.formula.api as smf
+import statsmodels.api as sm
+from statsmodels.tools.eval_measures import rmse
+from statsmodels.stats.anova import anova_lm
+```
+
+Dentro de las funciones para realizar regresiones en **Python** se encuentran:
+
+- `smf.ols(formula, data)`: ajusta un modelo de regresion lineal usando una formula similar a **R**.
+- `sm.OLS(endog/y, exog/x)`: ajusta un modelo de regresion lineal usando matrices numpy o pandas.
+  - `fit()`: metodo para ajustar el modelo.
+    - `summary()`: metodo para obtener un resumen del ajuste del modelo.
+- `anova_lm(mod1, mod2)`: funcion para comparar modelos anidados usando un analisis de varianza.
+- `rmse(predicted, actual)`: funcion para calcular el error cuadratico medio entre valores predichos y reales.
+
+- `stats.linregress(x, y)`: funcion para ajustar una regresion lineal simple, obteniendo coeficientes y estadisticos asociados.
+- `np.polyfit(x, y, deg)`: funcion para ajustar una regresion polinomial de grado `deg`, obteniendo solo coeficientes.
+- `statistics.linear_regression(x, y)`: solo coeficientes de regresion lineal.
+- `pg.linear_regression(x, y)`: coeficientes de regresion lineal y estadisticos asociados.
+
+
+### Relacion entre correlacion y regresion simple
+
+En una regresion simple ($y \sim x$, un predictor) el coeficiente de correlacion (y covarianza) entre ambas variables va a ser igual a la pendiente de la regresion cuando se usan variables estandarizadas ($z \sim N(0,1)$).
+
+Usando variables estandarizadas:
+
+```{python cor-z-mod}
+coefs = np.polyfit(x=airq["Wind_z"], y=airq["Temp_z"], deg=1)
+print(coefs)
+```
+
+Correlacion y covarianza entre variables estandarizadas:
+
+```{python cor-cov-z}
+print(np.corrcoef(airq["Wind_z"], airq["Temp_z"])[0, 1])
+
+print(np.cov(airq["Wind_z"], airq["Temp_z"])[0, 1])
+```
+
+### Lineal
+
+$y \thicksim \hat{b}_0 + \hat{b}_1x + \epsilon$
+
+```{python mod-lin}
+mod1 = smf.ols('Temp ~ Solar_R', data=airquality).fit()  # modelo de regresion lineal
+```
+
+Coeficientes del modelo
+
+```{python mod-lin-param}
+# mod1.summary().tables[1]
+mod1.params
+# mod1.get_prediction().summary_frame(alpha=0.05)
+mod1_params = pd.DataFrame({
+    'Predictor': mod1.params.index,
+    'Estimate': mod1.params.values
+})
+mod1_params
+```
+
+Ajuste del modelo
+
+```{python mod-lin-fit}
+# mod1.summary().tables[0]
+print(rmse(mod1.fittedvalues, mod1.model.endog))  # RMSE
+print(mod1.rsquared)  # R^2
+print(mod1.rsquared_adj)  # R^2 ajustado
+print(mod1.aic)  # AIC
+```
+
+
+### Cuadratica
+
+$y \thicksim \hat{b}_0 + \hat{b}_1x + \hat{b}_2x^2 + \epsilon$
+
+```{python mod-cuad}
+mod2 = smf.ols('Temp ~ Solar_R + I(Solar_R**2)', data=airquality).fit() # modelo de regresion cuadratica
+```
+
+Coeficientes del modelo
+
+```{python mod-cuad-param}
+mod2.params
+```
+
+Ajuste del modelo
+
+```{python mod-cuad-fit}
+# mod2.summary().tables[0]
+print(rmse(mod2.fittedvalues, mod2.model.endog))  # RMSE
+print(mod2.rsquared)  # R^2
+print(mod2.rsquared_adj)  # R^2 ajustado
+print(mod2.aic)  # AIC
+```
+
+
+### Compara modelos
+
+```{python comp-mod1}
+anova_lm(mod1, mod2)
+```
+
+
+## Graficos
+
+Para agregar lineas de tendencia en graficos de **plotnine** se usa la funcion `geom_smooth`. Por defecto ajusta una curva loess, pero para cambiarlo se usa `method = 'lm'`, y para especificar una ecuacion diferente a la regresion simple se usa `formula`, donde `y` y `x` son genericos, **NO** hay que poner el nombre de las variables que se esta graficando.
+
+En **seaborn** se usa la funcion `regplot`, donde el argumento `order` define el grado del polinomio a ajustar (1 = lineal, 2 = cuadratico, etc).
+
+```{python dispersion}
+(p9.ggplot(airq, p9.aes("Solar_R","Temp")) + 
+  p9.geom_point())
+```
+
+```{python regresion-suavizada}
+(p9.ggplot(airq, p9.aes("Solar_R","Temp")) + 
+  p9.geom_point() + 
+  p9.geom_smooth(color='blue'))
+```
+
+Grafico de regresion lineal
+
+```{python regresion-lin}
+(p9.ggplot(airq, p9.aes("Solar_R","Temp")) + 
+  p9.geom_point() + 
+  p9.geom_smooth(method = 'lm',color='blue')) 
+```
+
+```{python}
+fig, ax = plt.subplots()
+sns.regplot(data=airq, x="Solar_R", y="Temp", order=1,
+            scatter_kws={'alpha':0.5, 'color':'black'},
+            line_kws={'color':'blue'})
+plt.xlabel("Radiacion Solar")
+plt.ylabel("Temperatura")
+plt.title("Grafico de dispesion con regresion lineal")
+plt.show()
+```
+
+Grafico de regresion cuadratica
+
+```{python regresion-cuad}
+(p9.ggplot(airq, p9.aes("Solar_R","Temp")) + 
+  p9.geom_point() + 
+  p9.geom_smooth(method = 'lm',color='blue', 
+                formula = 'y ~ x + I(x**2)'))
+```
+
+```{python}
+fig, ax = plt.subplots()
+sns.regplot(data=airq, x="Solar_R", y="Temp", order=2,
+            scatter_kws={'alpha':0.5, 'color':'black'},
+            line_kws={'color':'red'})
+plt.xlabel("Radiacion Solar")
+plt.ylabel("Temperatura")
+plt.title("Grafico de dispesion con regresion polinomial")
+plt.show()
+```
+
+Grafico de regresion lineal y cuadratica
+
+```{python regresion-lin-cuad}
+(p9.ggplot(airq, p9.aes("Solar_R", "Temp")) +
+  p9.geom_point(alpha=0.5) +
+  p9.geom_smooth(p9.aes(color='"Lineal"', fill='"Lineal"'), 
+                 method='lm', se=True, alpha=0.2) +
+  p9.geom_smooth(p9.aes(color='"Cuadratica"', fill='"Cuadratica"'), 
+                 method='lm', se=True, alpha=0.2,
+                 formula='y ~ x + I(x**2)') +
+  p9.scale_color_manual(values=['blue', 'red'], name='Modelo') +
+  p9.scale_fill_manual(values=['blue', 'red'], name='Modelo') +
+  p9.xlab('Radiacion Solar') +
+  p9.ylab('Temperatura') +
+  p9.labs(title='Grafico de dispesion con modelos de regresion') +
+  p9.theme(legend_position='top'))
+```
+
+```{python}
+fig, ax = plt.subplots()
+
+ax.scatter(airquality["Solar_R"], airquality["Temp"], 
+           alpha=0.5, color='black', label='_nolegend_')
+
+sns.regplot(data=airquality, x="Solar_R", y="Temp", order=1,
+      scatter=False, label='Lineal',
+      line_kws={'color':'blue'},
+      ax=ax)
+sns.regplot(data=airquality, x="Solar_R", y="Temp", order=2,
+      scatter=False, label='Cuadratica',
+      line_kws={'color':'red'},
+      ax=ax)
+
+ax.set_xlabel("Radiacion Solar")
+ax.set_ylabel("Temperatura")
+ax.legend(loc='best')
+ax.set_title("Grafico de dispesion con modelos de regresion")
+plt.show()
+```
+
+# Probabilidad
+
+```{python prob}
+A = pd.DataFrame(
+  [[15, 23, 11],
+   [24, 14, 13]],
+  index=['X', 'Y'],
+  columns=['A', 'B', 'C']
+)
+# convertir tabla de conteos A a un DataFrame con una observación por fila
+A_df = A.stack().rename('count').reset_index()
+A_df.columns = ['Tipo', 'Capa', 'count']
+
+A_df_exp = df.loc[df.index.repeat(df['count'])].reset_index(drop=True).drop(columns='count')
+A_df_exp
+
+A_df_exp_pl = pl.from_pandas(A_df_exp)
+```
+
+# Tabla de contingencia y tablas cruzadas
+
+```{python}
+pd.crosstab(A_df_exp['Tipo'], 
+            A_df_exp['Capa'], 
+            margins=True,
+            normalize='index' # 'index', 'columns', 'all', False
+            )
+```
+
+```{python}
+print(
+  pd.crosstab(
+    A_df_exp[A_df_exp['Capa']=='A']['Tipo'], 
+    A_df_exp[A_df_exp['Capa']=='A']['Capa'], 
+    margins=False,
+    normalize='columns'
+    )
+    )
+
+print(
+  pd.crosstab(
+    A_df_exp[A_df_exp['Tipo']=='Y']['Tipo'],
+    A_df_exp[A_df_exp['Tipo']=='Y']['Capa'], 
+    margins=False,
+    normalize='index'
+    )
+    )
+```
+
+
+```{python}
+print(
+  A_df_exp_pl.filter(
+    pl.col("Capa") == 'A'
+    ).group_by("Tipo",maintain_order=True).agg(
+      N=pl.len()
+      ).with_columns(
+        (pl.col("N")/pl.col("N").sum()).alias("perc")
+        )
+        )
+
+print(
+  A_df_exp_pl.filter(
+    pl.col("Tipo") == 'Y'
+    ).group_by("Capa",maintain_order=True).agg(
+      N=pl.len()
+      ).with_columns(
+        (pl.col("N")/pl.col("N").sum()).alias("perc")
+        )
+        )
+```

@@ -84,7 +84,9 @@ Para `geom_bar` el argumento `position` puede tener cualquiera de estos tres val
   p9.geom_bar() +
   p9.labs(y='Frecuencia absoluta') +
   p9.scale_fill_brewer(type='qual', palette='Set1'))
+```
 
+```{python}
 (p9.ggplot(penguins, p9.aes("species", fill = "island")) +
   p9.geom_bar(position = 'fill') +
   p9.labs(y='Frecuencia relativa') +
@@ -186,7 +188,9 @@ plt.show()
 ```{python}
 (p9.ggplot(penguins, p9.aes(x = "species", y = "bill_length_mm")) +
   p9.geom_boxplot())
+```
 
+```{python}
 (p9.ggplot(penguins, p9.aes(x = "species", y = "bill_length_mm")) +
   p9.geom_boxplot() +
   p9.stat_summary(fun_y = np.mean, geom = "point", 
@@ -213,45 +217,54 @@ Se muestran diferentes funciones para caracterizar la tendencia central en un ve
 myvector = np.array([22,10,10,16,15,15,24,19,15,19,18,16,18,12,17,17,11,18])
 myseries = pd.Series(myvector)
 
-myseries.describe()
-np.mean(myvector)
-statistics.median(myvector)
-stats.gmean(myvector) # media geometrica
-statistics.geometric_mean(myvector)
+print(np.mean(myvector))
+print(statistics.median(myvector))
+print(stats.gmean(myvector)) # media geometrica
+print(statistics.geometric_mean(myvector)) # media geometrica
+```
 
-
+```{python}
 outlier = np.append(myvector,200)
-np.mean(outlier)
-statistics.median(outlier)
-stats.gmean(outlier) # media geometrica
 
+print(np.mean(outlier))
+print(statistics.median(outlier))
+print(stats.gmean(outlier)) # media geometrica
+```
+
+```{python}
 miss = np.append(myvector,np.nan)
-np.nanmean(miss)
-statistics.median(miss)
-stats.gmean(miss[~np.isnan(miss)]) # media geometrica sin NaN
+
+print(np.nanmean(miss))
+print(statistics.median(miss))
+print(stats.gmean(miss[~np.isnan(miss)])) # media geometrica sin NaN
 ```
 
 ### Medidas de dispersion
 
 ```{python}
-np.var(myvector, ddof=1) # varianza muestral
-np.std(myvector, ddof=1) # desviacion estandar muestral
-myseries.var() # varianza muestral
-myseries.std() # desviacion estandar muestral
-statistics.variance(myvector) # varianza muestral
-stats.iqr(myvector) # rango intercuartil
-robust.mad(myvector, center=np.median(myvector)) # desviacion absoluta de la mediana
-myseries.std() / myseries.mean() # coeficiente de variacion
+print(np.var(myvector, ddof=1)) # varianza muestral
+print(np.std(myvector, ddof=1)) # desviacion estandar muestral
+print(myseries.var()) # varianza muestral
+print(myseries.std() )# desviacion estandar muestral
+print(statistics.variance(myvector)) # varianza muestral
+print(stats.iqr(myvector)) # rango intercuartil
+print(robust.mad(myvector, center=np.median(myvector))) # desviacion absoluta de la mediana
+cv = (myseries.std() / myseries.mean()) * 100 # coeficiente de variacion
+print(cv)
+```
 
-np.std(outlier, ddof=1) # desviacion estandar muestral
-robust.mad(outlier, center=np.median(outlier)) # desviacion absoluta de la mediana
+Con valor atipico
+
+```{python}
+print(np.std(outlier, ddof=1)) # desviacion estandar muestral
+print(robust.mad(outlier, center=np.median(outlier))) # desviacion absoluta de la mediana
 ```
 
 ### Asimetria y Curtosis
 
 ```{python}
-stats.kurtosis(myvector)
-stats.skew(myvector)
+print(stats.kurtosis(myvector))
+print(stats.skew(myvector))
 ```
 
 ### Descripciones mas generales

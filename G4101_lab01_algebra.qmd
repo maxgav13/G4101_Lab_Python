@@ -45,10 +45,10 @@ d = np.arange(50,19,-5)      # numeros del 50 al 20 cada 5 (decreciente)
 e = np.repeat(12,8)          # numero 12 repetido 8 veces
 f = np.array([1,3,5,7])      # numeros cualquiera
 
-a * 5
-a + 5
-b * c
-np.dot(b,c)  # producto punto
+print(a * 5)
+print(a + 5)
+print(b * c)
+print(np.dot(b,c))  # producto punto
 ```
 
 ## Matrices
@@ -57,32 +57,32 @@ Para matrices recordar que para sumar o restar deben tener las mismas dimensione
 
 ```{python}
 A = np.array([[1, 5], [3, 7]])
-A
+print(A)
 
-linalg.det(A)    # determinante de matriz
-linalg.eig(A)    # eigen values y vectors de A
-linalg.inv(A)    # inversa de A
-A.T              # transpuesta de A
+print(linalg.det(A))    # determinante de matriz
+print(linalg.eig(A))    # eigen values y vectors de A
+print(linalg.inv(A))    # inversa de A
+print(A.T)              # transpuesta de A
 
-A[0,]            # fila 1, todas las columnas (todas las columnas)
-A[1,0]           # fila 2, columna 1 (1 elemento)
+print(A[0,])            # fila 1, todas las columnas (todas las columnas)
+print(A[1,0])           # fila 2, columna 1 (1 elemento)
 A[1,0] = 15      # reemplaza el elemento en fila 2 columna 1 por 15
-A
+print(A)
 
 
 B = np.array([[11, 15], [13, 17]])
   
-A + B   # suma de matrices
-A @ B # multiplicacion de matrices
-A @ np.array([[2],[5]]) # multplicacion de matriz y vector
+print(A + B)   # suma de matrices
+print(A @ B) # multiplicacion de matrices
+print(A @ np.array([[2],[5]])) # multplicacion de matriz y vector
 ```
 
 Arreglos (vectores) se pueden convertir en matrices usando `np.reshape()`, donde se especifican las dimensiones de la nueva matriz/arreglo. Si se quiere especificar solo una dimension, se puede usar `-1` para que **Python** calcule automaticamente la otra dimension.
 
 ```{python}
-a.reshape(4,5)  # convierte vector a matriz de 4 filas y 5 columnas
+print(a.reshape(4,5))  # convierte vector a matriz de 4 filas y 5 columnas
 
-a.reshape(-1,4)  # convierte vector a matriz con 4 columnas y filas automáticas
+print(a.reshape(-1,4))  # convierte vector a matriz con 4 columnas y filas automáticas
 ```
 
 Si se tiene un dataframe de **pandas**, con solo columnas numericas, se puede convertir a matriz usando el metodo `df.to_numpy()`.
@@ -91,5 +91,5 @@ Si se tiene un dataframe de **pandas**, con solo columnas numericas, se puede co
 datos = pd.read_csv("data/ABOC.csv")
  
 C = datos.to_numpy() # convierte dataframe en matriz
-C
+print(C)
 ```
