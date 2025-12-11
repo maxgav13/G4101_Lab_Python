@@ -1,0 +1,235 @@
+---
+title: "Lab 4: Distribuciones de probabilidad"
+author: "Maximiliano Garnier Villarreal"
+lang: es
+toc: true
+toc-depth: 3
+toc-title: Contenidos
+number-sections: true
+highlight-style: pygments
+theme: sandstone
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Codigo"
+    code-tools: true
+    html-math-method: katex
+  pdf: 
+    prefer-html: false
+  docx: default
+execute:
+  warning: false
+  error: false
+  echo: true
+---
+
+# Paquetes
+
+```{python}
+#| label: setup
+#| include: false
+
+import numpy as np
+import pandas as pd
+from scipy import stats
+import plotnine as p9
+
+p9.theme_set(p9.theme_minimal(base_size = 14))
+```
+
+# Distribuciones
+
+## Binomial
+
+Para esta distribucion los parametros son:
+
+-   `k`: Numero de exitos para el cual se requiere la probabilidad
+-   `n`: El numero total de intentos
+-   `p`: La probabilidad de exito
+
+```{python}
+k = 1
+n = 6
+p = .1
+
+print(stats.binom.pmf(k, n, p)) # probabilidad puntual
+print(stats.binom.cdf(k, n, p)) # probabilidad acumulada
+print(sum(stats.binom.pmf([0,1], n, p))) # probabilidad acumulada
+
+print(1 - stats.binom.cdf(k, n, p)) # probabilidad para MAS de x aciertos
+
+# Calculo de probabilidad binomial a una serie de intentos 
+k2 = list(range(0,7))
+n2 = 6
+p2 = 0.1
+
+print(stats.binom.pmf(k2,n2,p2))
+print(stats.binom.cdf(k2,n2,p2))
+```
+
+```{python fig-dist-binom}
+#| fig-cap: 'Distribucion binomial'
+#| fig-subcap:
+#|   - 'Funcion de probabilidad'
+#|   - 'Funcion de probabilidad acumulada'
+#| layout-ncol: 2
+
+binom_pd = pd.DataFrame({
+  'x': k2, 
+  'pdf': stats.binom.pmf(k2, n2, p2),
+  'cdf': stats.binom.cdf(k2, n2, p2)
+  })
+
+(p9.ggplot(binom_pd, p9.aes(x='x', y='pdf')) +
+  p9.geom_col(width = .5, fill='blue') +
+  p9.theme_bw())
+
+(p9.ggplot(binom_pd, p9.aes(x='x', y='cdf')) +
+  p9.geom_col(width = .5, fill='blue') +
+  p9.theme_bw())
+```
+
+## Poisson
+
+Para esta distribucion los parametros son:
+
+-   `x`: Numero de exitos para el cual se requiere la probabilidad
+-   `lam`: El promedio de exitos por unidad de tiempo/espacio
+
+```{python}
+x = 2
+lamb = .929 # media de ocurrencias sobre lapso de tiempo o espacio
+
+print(stats.poisson.pmf(x, lamb)) # probabilidad puntual
+print(stats.poisson.cdf(x, lamb)) # probabilidad acumulada
+
+print(1 - stats.poisson.cdf(x, lamb)) # probabilidad para MAS de x ocurrencias
+
+# Calculo de probabilidad Poisson a una serie de intentos 
+x2 = list(range(0,7))
+lamb = .929
+
+print(stats.poisson.pmf(x2, lamb))
+print(stats.poisson.cdf(x2, lamb))
+```
+
+```{python fig-dist-pois}
+#| fig-cap: 'Distribucion de Poisson'
+#| fig-subcap:
+#|   - 'Funcion de probabilidad'
+#|   - 'Funcion de probabilidad acumulada'
+#| layout-ncol: 2
+
+poisson_pd = pd.DataFrame({
+  'x': x2, 
+  'pdf': stats.poisson.pmf(x2, lamb),
+  'cdf': stats.poisson.cdf(x2, lamb)
+  })
+
+(p9.ggplot(poisson_pd, p9.aes(x='x', y='pdf')) +
+  p9.geom_col(width = .5, fill='blue') +
+  p9.theme_bw())
+
+(p9.ggplot(poisson_pd, p9.aes(x='x', y='cdf')) +
+  p9.geom_col(width = .5, fill='blue') +
+  p9.theme_bw())
+```
+
+## Normal
+
+Para esta distribucion los parametros son:
+
+-   `loc`: Media del evento, por defecto 0
+-   `scale`: Desviacion estandar del evento, por defecto 1
+
+```{python}
+print(1 - stats.norm.cdf(1.84)) # probabilidad de Z mayor a 1.84
+
+(p9.ggplot() 
+    + p9.xlim(-3, 3)
+    + p9.stat_function(geom='line', fun=stats.norm.pdf, 
+                       args={'loc': 0, 'scale': 1})
+    + p9.stat_function(geom='area', fun=stats.norm.pdf, 
+                       args={'loc': 0, 'scale': 1},
+                       xlim=(1.84, 3), fill='dodgerblue'))
+```
+
+```{python}
+print(stats.norm.cdf(.86) - stats.norm.cdf(-1.97)) # probabilidad de Z entre -1.97 y 0.86
+
+(p9.ggplot() 
+    + p9.xlim(-3, 3)
+    + p9.stat_function(geom='line', fun=stats.norm.pdf, 
+                       args={'loc': 0, 'scale': 1})
+    + p9.stat_function(geom='area', fun=stats.norm.pdf, 
+                       args={'loc': 0, 'scale': 1},
+                       xlim=(-1.97,.86), fill='dodgerblue'))
+```
+
+```{python}
+# media=50, sigma=10
+print(stats.norm.cdf(62,50,10) - stats.norm.cdf(45,50,10)) # probabilidad de 45 < X < 62
+
+(p9.ggplot() 
+    + p9.xlim(20, 80)
+    + p9.stat_function(geom='line', fun=stats.norm.pdf, 
+                       args={'loc': 50, 'scale': 10})
+    + p9.stat_function(geom='area', fun=stats.norm.pdf, 
+                       args={'loc': 50, 'scale': 10},
+                       xlim=(45,62), fill='dodgerblue'))
+
+print((62-50)/10)
+print((45-50)/10)
+
+print(stats.norm.cdf(1.2) - stats.norm.cdf(-.5))
+```
+
+```{python}
+# media=300, sigma=50
+print(1 - stats.norm.cdf(362,loc=300,scale=50)) # probabilidad de X > 362
+
+(p9.ggplot() 
+    + p9.xlim(150, 450)
+    + p9.stat_function(geom='line', fun=stats.norm.pdf, 
+                       args={'loc': 300, 'scale': 50})
+    + p9.stat_function(geom='area', fun=stats.norm.pdf, 
+                       args={'loc': 300, 'scale': 50},
+                       xlim=(362,450), fill='dodgerblue'))
+```
+
+```{python}
+# media=40, sigma=6
+print(stats.norm.ppf(.45,40,6)) # X para 45% de los datos a la izquierda
+print(stats.norm.ppf(1-.14,40,6)) # X para 14% de los datos a la derecha
+```
+
+# Simulaciones
+
+Repasando como se comportan datos logicos con funciones aritmeticas
+
+```{python}
+v = np.arange(1,21)
+v < 6
+sum(v < 6)
+np.mean(v < 6)
+```
+
+Se muestra como relizar calculos de probabilidades usando datos simulados, recreando algunos de los ejemplos anteriormente mostrados. 
+
+Para simulaciones se usa una semilla fija para obtener resultados reproducibles. Dependiendo de la libreria a usar, la forma de fijar la semilla puede variar. Para `numpy` se usa `rng = np.random.default_rng(#)` y `rng.{dist}(*args, size=_)`; para `scipy.stats` se usa `stats.{dist}.rvs(*args, size=_, random_state=#)`; donde `#` es el numero de la semilla y `_` es el numero de datos a simular.
+
+```{python}
+rng = np.random.default_rng(10)
+n = 1000
+sim = {
+  "z10_mean": rng.normal(size=10).mean(),
+  "x10_mean": rng.normal(loc=50, scale=6, size=10).mean(),
+  "prob_45_62": np.mean(rng.normal(loc=50, scale=10, size=n) < 62)
+                - np.mean(rng.normal(loc=50, scale=10, size=n) < 45),
+  "prob_gt_362": np.mean(rng.normal(loc=300, scale=50, size=n) > 362),
+  "pois_eq_2": np.mean(rng.poisson(lam=0.929, size=n) == 2),
+  "pois_gt_2": np.mean(rng.poisson(lam=0.929, size=n) > 2)
+}
+sim
+```

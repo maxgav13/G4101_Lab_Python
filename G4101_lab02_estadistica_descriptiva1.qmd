@@ -214,7 +214,7 @@ plt.show()
 Se muestran diferentes funciones para caracterizar la tendencia central en un vector corriente, uno con un valor atipico y otro con un valor faltante, para ver como se ven afectadas las diferentes estadisticas. En general se usan funciones de **numpy**, **pandas**, **statistics** y **scipy.stats**.
 
 ```{python}
-myvector = np.array([22,10,10,16,15,15,24,19,15,19,18,16,18,12,17,17,11,18])
+myvector = np.array([22,10,10,16,15,15,24,19,15,19,18,16,18,12,17,17,11,18], dtype=float)
 myseries = pd.Series(myvector)
 
 print(np.mean(myvector))
@@ -247,6 +247,7 @@ print(np.std(myvector, ddof=1)) # desviacion estandar muestral
 print(myseries.var()) # varianza muestral
 print(myseries.std() )# desviacion estandar muestral
 print(statistics.variance(myvector)) # varianza muestral
+print(statistics.stdev(myvector)) # desviacion estandar muestral
 print(stats.iqr(myvector)) # rango intercuartil
 print(robust.mad(myvector, center=np.median(myvector))) # desviacion absoluta de la mediana
 cv = (myseries.std() / myseries.mean()) * 100 # coeficiente de variacion

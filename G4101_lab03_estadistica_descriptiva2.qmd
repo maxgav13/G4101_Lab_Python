@@ -69,7 +69,7 @@ airq = airq.with_columns(*(exprs_c + exprs_z))
 airq
 ```
 
-Otra forma de crear las variables estandarizadas y centradas es usando `map_batches`.
+Otra forma de crear las variables estandarizadas y centradas es usando `map_batches`, con la funcion `stats.zscore` de **scipy** para los z-scores y una funcion lambda para las variables centradas.
 
 ```{python}
 pl.from_pandas(airquality).with_columns(
@@ -79,6 +79,7 @@ pl.from_pandas(airquality).with_columns(
   ).with_columns(
     cs.numeric().
     map_batches(lambda x: (x - x.mean()) / x.std()).name.suffix("_z"),
+    # map_batches(lambda x: stats.zscore(x, ddof=1, nan_policy="omit")).name.suffix("_z"),
     cs.numeric().
     map_batches(lambda x: (x - x.mean())).name.suffix("_c")
   )
