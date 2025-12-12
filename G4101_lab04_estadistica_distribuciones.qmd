@@ -217,19 +217,39 @@ np.mean(v < 6)
 
 Se muestra como relizar calculos de probabilidades usando datos simulados, recreando algunos de los ejemplos anteriormente mostrados. 
 
-Para simulaciones se usa una semilla fija para obtener resultados reproducibles. Dependiendo de la libreria a usar, la forma de fijar la semilla puede variar. Para `numpy` se usa `rng = np.random.default_rng(#)` y `rng.{dist}(*args, size=_)`; para `scipy.stats` se usa `stats.{dist}.rvs(*args, size=_, random_state=#)`; donde `#` es el numero de la semilla y `_` es el numero de datos a simular.
+Para simulaciones se usa una semilla fija para obtener resultados reproducibles. Dependiendo de la libreria a usar, la forma de fijar la semilla puede variar. El `#` en los ejemplos siguientes debe ser reemplazado por un numero entero fijo.
+
+Con **numpy**:
+- `rng = np.random.default_rng(#)`
+- `rng.normal(loc=_, scale=_, size=_)`
+- `rng.poisson(lam=_, size=_)`
+- `rng.binomial(n=_, p=_, size=_)`
+- `rng.standard_t(df=_, size=_)`
+- `rng.chisquare(df=_, size=_)`
+- `rng.f(dfden=_, dfnum=_, size=_)`
+
+Con **scipy.stats**:
+- `stats.norm.rvs(loc=_, scale=_, size=_, random_state=#)`
+- `stats.poisson.rvs(mu=_, size=_, random_state=#)`
+- `stats.binom.rvs(n=_, p=_, size=_, random_state=#)`
+- `stats.t.rvs(df=_, size=_, random_state=#)`
+- `stats.chi2.rvs(df=_, size=_, random_state=#)`
+- `stats.f.rvs(dfn=_, dfd=_, size=_, random_state=#)`
 
 ```{python}
 rng = np.random.default_rng(10)
-n = 1000
+n = 10000
+
 sim = {
-  "z10_mean": rng.normal(size=10).mean(),
-  "x10_mean": rng.normal(loc=50, scale=6, size=10).mean(),
+  "z_mean": rng.normal(size=10).mean(),
+  "x50_mean": rng.normal(loc=50, scale=6, size=10).mean(),
   "prob_45_62": np.mean(rng.normal(loc=50, scale=10, size=n) < 62)
                 - np.mean(rng.normal(loc=50, scale=10, size=n) < 45),
   "prob_gt_362": np.mean(rng.normal(loc=300, scale=50, size=n) > 362),
   "pois_eq_2": np.mean(rng.poisson(lam=0.929, size=n) == 2),
   "pois_gt_2": np.mean(rng.poisson(lam=0.929, size=n) > 2)
 }
-sim
+
+sim_df = pd.DataFrame([sim])
+sim_df
 ```
