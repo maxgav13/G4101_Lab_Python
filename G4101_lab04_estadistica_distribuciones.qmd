@@ -250,6 +250,6 @@ sim = {
   "pois_gt_2": np.mean(rng.poisson(lam=0.929, size=n) > 2)
 }
 
-sim_df = pd.DataFrame([sim])
+sim_df = pd.DataFrame([sim]).melt(var_name='caso',value_name='valor')
 sim_df
 ```
