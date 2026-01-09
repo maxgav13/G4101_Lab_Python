@@ -1,0 +1,153 @@
+---
+title: "Lab 5: Estadistica Inferencial"
+author: "Maximiliano Garnier Villarreal"
+lang: es
+toc: true
+toc-depth: 3
+toc-title: Contenidos
+number-sections: true
+highlight-style: pygments
+theme: sandstone
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Codigo"
+    code-tools: true
+    html-math-method: katex
+  pdf: 
+    prefer-html: false
+  docx: default
+execute:
+  warning: false
+  error: false
+  echo: true
+---
+
+# Paquetes
+
+```{python}
+#| label: setup
+#| include: true
+
+import numpy as np
+import pandas as pd
+from scipy import stats
+import plotnine as p9
+
+p9.theme_set(p9.theme_minimal(base_size = 14))
+```
+
+# Inferencial
+
+
+## Normal - $Z$
+
+Inferencia sobre una media con respecto a una teorica, conociendo $\sigma^2$
+
+```{python}
+mu = 3.5
+sigma = 0.2 
+n = 8
+s = sigma/np.sqrt(n)
+
+# probabilidad de X > 3.6 con n=8
+print(1 - stats.norm.cdf(x=3.6, loc=mu, scale=s))
+```
+
+```{python}
+xmin = mu-3.5*s
+xmax = mu+3.5*s
+
+(p9.ggplot() 
+    + p9.xlim(xmin, xmax)
+    + p9.stat_function(geom='line', fun=stats.norm.pdf, 
+                       args={'loc': mu, 'scale': s})
+    + p9.stat_function(geom='area', fun=stats.norm.pdf, 
+                       args={'loc': mu, 'scale': s},
+                       xlim=(3.6,xmax), fill='dodgerblue'))
+```
+
+## $t$
+
+Inferencia sobre la media sin conocer $\sigma^2$
+
+```{python}
+mu = 500
+s = 40
+n = 25
+v = n-1
+t = (518 - 500) / (s/np.sqrt(n))
+
+print(1 - stats.t.cdf(x=t, df=v))
+```
+
+```{python}
+xmin = -4
+xmax = 4
+
+(p9.ggplot() 
+    + p9.xlim(xmin, xmax)
+    + p9.stat_function(geom='line', fun=stats.t.pdf, 
+                       args={'df': v})
+    + p9.stat_function(geom='area', fun=stats.t.pdf, 
+                       args={'df': v},
+                       xlim=(t,xmax), fill='dodgerblue'))
+```
+
+## $\chi^2$
+
+Inferencia sobre una $s^2$ con respecto a $\sigma^2$
+
+```{python}
+sigma2 = 0.8
+s2 = 1.2
+n = 6
+v = n-1
+
+chi=(v*s2)/sigma2
+
+# probabilidad de s2 > 1.2
+print(1 - stats.chi2.cdf(x=chi, df=v))
+```
+
+```{python}
+xmax = stats.chi2.ppf(q = .995, df = v)
+
+(p9.ggplot() 
+    + p9.xlim(0, xmax)
+    + p9.stat_function(geom='line', fun=stats.chi2.pdf, 
+                       args={'df': v})
+    + p9.stat_function(geom='area', fun=stats.chi2.pdf, 
+                       args={'df': v},
+                       xlim=(chi,xmax), fill='dodgerblue'))
+```
+
+## $F$
+
+Inferencia sobre dos $s^2$
+
+```{python}
+n1 = 6
+n2 = 9
+v1 = n1-1
+v2 = n2-1
+s2_1 = 4
+s2_2 = 2
+f = s2_1 / s2_2
+
+# probabilidad de F > 2 con 5 y 8 grados de libertad
+print(1 - stats.f.cdf(x=f, dfn=v1, dfd=v2))
+```
+
+```{python}
+xmax = stats.f.ppf(q = .995, dfn=v1, dfd=v2)
+
+(p9.ggplot() 
+    + p9.xlim(0, xmax)
+    + p9.stat_function(geom='line', fun=stats.f.pdf, 
+                       args={'dfn': v1, 'dfd': v2})
+    + p9.stat_function(geom='area', fun=stats.f.pdf, 
+                       args={'dfn': v1, 'dfd': v2},
+                       xlim=(f,xmax), fill='dodgerblue'))
+```

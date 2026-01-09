@@ -1,0 +1,233 @@
+---
+title: "Lab 6: Estadistica Inferencial - Estimacion"
+author: "Maximiliano Garnier Villarreal"
+lang: es
+toc: true
+toc-depth: 3
+toc-title: Contenidos
+number-sections: true
+highlight-style: pygments
+theme: sandstone
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Codigo"
+    code-tools: true
+    html-math-method: katex
+  pdf: 
+    prefer-html: false
+  docx: default
+execute:
+  warning: false
+  error: false
+  echo: true
+---
+
+# Paquetes
+
+```{python}
+#| label: setup
+#| include: false
+
+import numpy as np
+import pandas as pd
+from scipy import stats
+import statsmodels.stats.api as sms
+```
+
+# Intervalos de confianza
+
+Para distribuciones simetricas los intervalos de confianza siguen la forma
+
+$$\hat{\theta} \pm MoE$$
+
+donde
+
+$$\hat{\theta} = \text{estadistico o estimador}$$
+
+$$MoE = \text{margen de error} =  SE \cdot stat_{crit,1-\alpha,v}$$
+
+y $SE = \text{error estandar}$, $1-\alpha = \text{nivel de confianza}$, y $v = \text{grados de libertad}$.
+
+Para distribuciones asimetricas los intervalos de confianza siguen la forma
+
+$$\hat{\theta}_i < \hat{\theta} < \hat{\theta}_s$$
+
+donde $\hat{\theta}_i = \text{limite inferior}$ y $\hat{\theta}_s = \text{limite superior}$
+
+## Media
+
+### Una media conociendo $\sigma$ - $Z$
+
+$$\bar{x} \pm z_{\alpha/2} \frac{\sigma}{\sqrt{n}}$$
+
+$SE = \text{error estandar}=\frac{\sigma}{\sqrt{n}}$
+
+```{python}
+x = 2.6
+sigma = .3
+n = 36
+s = sigma/np.sqrt(n)
+alfa = .05
+
+z1 = stats.norm.interval(confidence=1-alfa, loc = x, scale = s)
+print(f"IC: ({z1[0]:.4f}, {z1[1]:.4f})")
+```
+
+### Una media sin conocer $\sigma$ - $t$
+
+$$\bar{x} \pm t_{\alpha/2,v} \frac{s}{\sqrt{n}}$$
+
+$SE = \text{error estandar}=\frac{s}{\sqrt{n}}$
+
+```{python}
+vec = np.array([23.5, 16.6, 25.4, 19.1, 19.3, 22.4, 20.9, 24.9])
+x = np.mean(vec)
+n = len(vec)
+s = np.std(vec, ddof=1)
+sem = s/np.sqrt(n)
+# sem = stats.sem(vec)
+alfa = .1
+
+t1 = stats.t.interval(confidence=1-alfa, df=n-1, loc = x, scale = sem)
+# stats.ttest_1samp(vec, popmean=0).confidence_interval(confidence_level=1-alfa)
+print(f"IC: ({t1[0]:.4f}, {t1[1]:.4f})")
+```
+
+Otra forma de calcularlo es usando la libreria statsmodels.
+
+```{python}
+desc1 = sms.DescrStatsW(vec)
+
+print(f"Media: {desc1.mean:.2f}")
+print(f"Desv. Est.: {desc1.std_ddof(1):.2f}")
+print(f"SEM: {desc1.std_mean:.2f}")
+
+print(desc1.tconfint_mean(alpha=alfa))
+```
+
+### Dos medias independientes sin conocer $\sigma$
+
+#### Varianzas iguales
+
+$$(\bar{x}_1-\bar{x}_2) \pm t_{\alpha/2,v} \cdot s_p \sqrt{\frac{1}{n_1} + \frac{1}{n_2}}$$
+
+$SE = \text{error estandar} = s_p \sqrt{\frac{1}{n_1} + \frac{1}{n_2}}$
+
+$s_p^2 = \frac{(n_1-1)s_1^2 + (n_2-1)s_2^2}{n_1 + n_2 - 2}$
+
+```{python}
+A = np.array([3.2, 3.1, 3.1, 3.3, 2.9, 2.9, 3.5, 3.0])
+B = np.array([3.1, 3.1, 2.8, 3.1, 3.0, 2.6, 3.0, 3.0, 3.1, 2.8])
+a = .05
+
+varIgual = stats.ttest_ind(A, B, equal_var=True).confidence_interval(confidence_level=1-a)
+print(f"IC con varianzas iguales: ({varIgual.low:.4f}, {varIgual.high:.4f})")
+```
+
+#### Varianzas diferentes
+
+$$(\bar{x}_1-\bar{x}_2) \pm t_{\alpha/2,v} \cdot \sqrt{\frac{s_1^2}{n_1} + \frac{s_2^2}{n_2}}$$
+
+$SE = \text{error estandar} = \sqrt{\frac{s_1^2}{n_1} + \frac{s_2^2}{n_2}}$
+
+$v = \frac{(s_1^2/n_1 + s_2^2/n_2)^2}{[(s_1^2/n_1)^2/(n_1-1)] + [(s_2^2/n_2)^2/(n_2-1)]}$
+
+```{python}
+varDif = stats.ttest_ind(A, B, equal_var=False).confidence_interval(confidence_level=1-a)
+print(f"IC con varianzas diferentes: ({varDif.low:.4f}, {varDif.high:.4f})")
+```
+
+Otra forma de calcular ambos intervalos es usando la libreria statsmodels. Para ello se utiliza la clase `CompareMeans` junto con `DescrStatsW`. En el metodo `tconfint_diff` se especifica el parametro `usevar` para indicar si las varianzas son iguales ('pooled') o diferentes ('unequal').
+
+```{python}
+cm = sms.CompareMeans(sms.DescrStatsW(A), sms.DescrStatsW(B))
+
+# Equal variances: usevar='pooled'
+ci_equal = cm.tconfint_diff(alpha=a, usevar='pooled')
+print(f"IC con varianzas iguales: ({ci_equal[0]:.4f}, {ci_equal[1]:.4f})")
+
+# Unequal variances: usevar='unequal'
+ci_unequal = cm.tconfint_diff(alpha=a, usevar='unequal')
+print(f"IC con varianzas diferentes: ({ci_unequal[0]:.4f}, {ci_unequal[1]:.4f})")
+```
+
+### Dos medias dependientes sin conocer $\sigma$
+
+$$\bar{d} \pm t_{\alpha/2,v} \frac{s_d}{\sqrt{n}}$$
+
+$SE = \text{error estandar}=\frac{s_d}{\sqrt{n}}$
+
+```{python}
+m1 = np.array([13.5,14.6,12.7,15.5,11.1,16.4,13.2,19.3,16.7,18.4])
+m2 = np.array([13.6,14.6,12.6,15.7,11.1,16.6,13.2,19.5,16.8,18.7])
+diferencia = m2 - m1
+a = .05
+
+x_d = np.mean(diferencia)
+n = len(diferencia)
+s_d = np.std(diferencia, ddof=1)
+sem_d = s_d/np.sqrt(n)
+
+t_dep = stats.t.interval(confidence=1-a, df=n-1, loc = x_d, scale = sem_d)
+# stats.ttest_rel(m2, m1).confidence_interval(confidence_level=1-a)
+# sms.DescrStatsW(diferencia).tconfint_mean(alpha=a)
+print(f"IC para dos medias dependientes: ({t_dep[0]:.4f}, {t_dep[1]:.4f})")
+```
+
+## Varianza
+
+### $\chi^2$
+
+$$\frac{(n-1)s^2}{\chi^2_{1-\alpha/2,v}} < \sigma^2 < \frac{(n-1)s^2}{\chi^2_{\alpha/2,v}}$$
+
+```{python}
+vec = np.array([46.4, 46.1, 45.8, 47.0, 46.1, 45.9, 45.8, 46.9, 45.2, 46.0])
+s2 = np.var(vec, ddof=1)
+n = len(vec)
+v = n-1
+alfa = .05
+
+chi2_low = stats.chi2.ppf(alfa / 2, df=v)
+chi2_high = stats.chi2.ppf(1 - alfa / 2, df=v)
+
+lower_bound = (v * s2) / chi2_high
+upper_bound = (v * s2) / chi2_low
+
+print(f"IC para varianza: ({lower_bound:.4f}, {upper_bound:.4f})")
+print(f"IC para desv. est.: ({np.sqrt(lower_bound):.4f}, {np.sqrt(upper_bound):.4f})")
+```
+
+### $F$
+
+$$\frac{s^2_1}{s^2_2} \frac{1}{F_{\alpha/2(v_1,v_2)}} < \frac{\sigma^2_1}{\sigma^2_2} < \frac{s^2_1}{s^2_2} F_{\alpha/2(v_2,v_1)}$$
+
+```{python}
+n1 = 15
+n2 = 12
+s1 = 3.07
+s2 = 0.8
+
+ratio = (s1**2) / (s2**2)
+
+v1 = n1 - 1
+v2 = n2 - 1
+alfa = 0.02
+
+f_low = stats.f.ppf(q = 1 - alfa / 2, dfn = v1, dfd = v2)
+f_high = stats.f.ppf(q = 1 - alfa / 2, dfn = v2, dfd = v1)
+
+lower_bound = ratio * (1 / f_low)
+upper_bound = ratio * f_high
+
+print(f"IC para razon de varianzas: ({lower_bound:.4f}, {upper_bound:.4f})")
+print(f"IC para razon de desv. est.: ({np.sqrt(lower_bound):.4f}, {np.sqrt(upper_bound):.4f})")
+```
+
+# Valor-p
+
+```{python}
+print(1 - stats.norm.cdf(x = 1.18))        # unilateral derecha
+print((1 - stats.norm.cdf(x = 2.34)) * 2)  # bilateral
+```

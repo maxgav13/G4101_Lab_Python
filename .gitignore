@@ -15,3 +15,7 @@
 # Quarto
 /.quarto/
 **/*.quarto_ipynb
+*.aux
+*.log
+*.tex
+*.toc
