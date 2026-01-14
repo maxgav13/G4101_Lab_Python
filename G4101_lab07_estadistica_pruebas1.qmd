@@ -1,0 +1,411 @@
+---
+title: "Lab 7: Estadistica Inferencial - Pruebas 1"
+author: "Maximiliano Garnier Villarreal"
+lang: es
+toc: true
+toc-depth: 3
+toc-title: Contenidos
+number-sections: true
+highlight-style: pygments
+theme: sandstone
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Codigo"
+    code-tools: true
+    html-math-method: katex
+  pdf: 
+    prefer-html: false
+  docx: default
+execute:
+  warning: false
+  error: false
+  echo: true
+---
+
+# Paquetes
+
+```{python}
+#| label: setup
+#| include: false
+
+import numpy as np
+import pandas as pd
+import polars as pl
+from scipy import stats
+import pingouin as pg
+import statsmodels.stats.api as sms
+import plotnine as p9     
+
+from great_tables.data import airquality
+from plotnine.data import mpg
+
+air_pl = pl.from_pandas(airquality)
+mpg_pl = pl.from_pandas(mpg)
+
+p9.theme_set(p9.theme_minimal(base_size = 14))
+```
+
+# Varianza
+
+## Prueba-$\chi^2$ de 1 varianza
+
+$$H_0 : \sigma^2 = \sigma_0^2$$
+
+```{python}
+alfa = .05
+w = airquality["Temp"]
+
+var0 = 7**2 # varianza poblacional
+
+n = len(w)
+dof = n - 1
+varM = np.var(w, ddof=1) # varianza muestral
+
+chi2_stat = (dof * varM) / var0
+
+p_value = 2 * min(stats.chi2.cdf(chi2_stat, dof), stats.chi2.sf(chi2_stat, dof))
+
+print(f"Chi-Square: {chi2_stat:.4f}")
+print(f"valor-p: {p_value:.4f}")
+```
+
+## Prueba-$F$ de 2 varianzas
+
+$$H_0 : \sigma_1^2 = \sigma_2^2$$
+
+$$H_0 : \frac{\sigma_1^2}{\sigma_2^2} = 1$$
+
+```{python}
+alfa = .05
+
+mpg_pl.select("manufacturer").unique()
+
+g1 = mpg_pl.filter(pl.col("manufacturer") == "audi").select("cty").to_numpy().flatten()
+g2 = mpg_pl.filter(pl.col("manufacturer") == "ford").select("cty").to_numpy().flatten()
+
+var1 = g1.var(ddof=1)
+var2 = g2.var(ddof=1)
+
+df1 = len(g1) - 1
+df2 = len(g2) - 1
+
+f_stat = var1 / var2
+
+p_value = 2 * min(stats.f.cdf(f_stat, df1, df2), stats.f.sf(f_stat, df1, df2))
+
+print(f"F: {f_stat:.4f}")
+print(f"valor-p: {p_value:.4f}")
+```
+
+# Media
+
+## Tamanho de efecto en lenguaje comun (CLES)
+
+Aplica para todas las pruebas-t y su respectivo $d$
+
+$$
+PS = \Phi \Bigg(\frac{|d|}{\sqrt{2}}\Bigg) \\
+U_3 = \Phi(|d|) \\
+OVL = 2 \cdot \Phi \Bigg(\frac{-|d|}{2}\Bigg)
+$$
+
+## Prueba-t de 1 muestra
+
+$$H_0 : \mu = \mu_0$$
+
+```{python}
+# Ho: mu=7
+alfa = .05
+mu = 7
+
+verm = np.array([6.1, 5.5, 5.3, 6.8, 7.6, 5.3, 6.9, 6.1, 5.7])
+v = len(verm)-1
+
+t1 = stats.ttest_1samp(a=verm, popmean=mu, alternative="two-sided")
+t1
+```
+
+```{python}
+pg.ttest(x=verm, y=mu, alternative='two-sided', confidence=1-alfa)
+```
+
+### Tamanho del efecto
+
+$$
+d_s = \frac{\bar{x} - \mu_0}{s}
+$$
+
+$$
+g_s = d_s \cdot \Bigg(1-\frac{3}{4 \cdot v-1}\Bigg)
+$$
+
+#### $d$ de Cohen
+
+```{python}
+d = (verm.mean() - mu) / verm.std(ddof=1)
+print(f"d de Cohen: {d:.2f}")
+```
+
+#### $g$ de Hedges
+
+```{python}
+g = d * (1 - 3/(4*(v-1)))
+print(f"g de Hedges: {g:.2f}")
+```
+
+#### Tamanho de efecto en lenguaje comun (CLES)
+
+```{python}
+CLES = pl.DataFrame({
+  'd': d,
+  'PS': stats.norm.cdf(np.abs(d)/np.sqrt(2)),
+  'U3': stats.norm.cdf(np.abs(d)),
+  'OVL': 2 * stats.norm.cdf(-np.abs(d)/2)
+}
+)
+CLES
+```
+
+## Prueba-t de 2 muestras independientes
+
+$$H_0 : \mu_1 = \mu_2$$
+
+```{python}
+alfa = .05
+A = np.array([25, 40, 34, 37, 38, 35, 29, 32, 35, 44, 27, 33, 37, 38, 36])
+B = np.array([45, 37, 36, 38, 49, 47, 32, 41, 38, 45, 33, 39, 46, 47, 40])
+```
+
+```{python}
+data_dict = {
+    'A': A,
+    'B': B
+}
+
+DF = pd.concat({k: pd.Series(v) for k, v in data_dict.items()}) \
+       .reset_index(level=0) \
+       .rename(columns={'level_0': 'ind', 0: 'values'}) \
+       .reset_index(drop=True)
+```
+
+### Graficas
+
+```{python}
+(p9.ggplot(DF,p9.aes(x = "ind",y = "values",color="ind")) +
+  p9.geom_boxplot())
+```
+
+```{python}
+(p9.ggplot(DF, p9.aes("ind", "values")) +
+  p9.stat_summary(fun_data = "mean_cl_normal",
+                  fun_args = {'confidence_interval': .95},
+                  geom = "pointrange",
+                  color = "red",
+                  size=1) +
+  p9.theme_bw())
+```
+
+### Estadisticas por grupo
+
+```{python}
+pl.DataFrame(DF).group_by(
+  "ind"
+  ).agg(
+    pl.len().alias("N"),
+    pl.col("values").mean().name.suffix("_mean"),
+    pl.col("values").std(ddof=1).name.suffix("_std"),
+    )
+```
+
+### Prueba de igualdad de varianzas
+
+```{python}
+stats.levene(A,B,center='mean')
+```
+
+Si las varianzas son diferentes la prueba se llama prueba-t de Welch, si son iguales se llama prueba-t de Student.
+
+### Prueba
+
+```{python}
+stats.ttest_ind(A, B, alternative='two-sided', equal_var=True)
+```
+
+```{python}
+pg.ttest(x=A, y=B, alternative='two-sided', 
+         confidence=1-alfa, 
+         correction=False # False para varianzas iguales
+         )
+```
+
+```{python}
+pg.ttest(x=A, y=B, alternative='two-sided', 
+         confidence=1-alfa, 
+         correction=True # True para varianzas diferentes
+         )
+```
+
+### Tamanho del efecto
+
+Sin igualdad de varianzas
+
+$$
+d_s = \frac{\bar{x}_1 - \bar{x}_2}{\sqrt{\frac{s_1^2+s_2^2}{2}}}
+$$
+
+Con igualdad de varianzas
+
+$$
+d_s = \frac{\bar{x}_1 - \bar{x}_2}{\sqrt{\frac{s_1^2(n_1-1)+s_2^2(n_2-1)}{n_1+n_2-2}}}
+$$
+
+Correcion
+
+$$
+g_s = d_s \cdot \Bigg(1-\frac{3}{4 \cdot v-1}\Bigg) = d_s \cdot \Bigg(\frac{N-3}{N-2.25}\Bigg)
+$$
+
+#### $d$ de Cohen
+
+```{python}
+d = pg.compute_effsize(A, B, eftype='cohen')
+print(f"d de Cohen: {d:.2f}")
+```
+
+#### $g$ de Hedges
+
+```{python}
+g = pg.compute_effsize(A, B, eftype='hedges')
+print(f"g de Hedges: {g:.2f}")
+```
+
+#### Tamanho de efecto en lenguaje comun (CLES)
+
+```{python}
+CLES = pl.DataFrame({
+  'd': d,
+  'PS': stats.norm.cdf(np.abs(d)/np.sqrt(2)),
+  'U3': stats.norm.cdf(np.abs(d)),
+  'OVL': 2 * stats.norm.cdf(-np.abs(d)/2)
+}
+)
+CLES
+```
+
+## Prueba-t de 2 muestras dependientes
+
+$$H_0 : \mu_D = \mu_{despues} - \mu_{antes} = 0$$
+
+```{python}
+alfa = .05
+Antes = np.array([13.5,14.6,12.7,15.5,11.1,16.4,13.2,19.3,16.7,18.4])
+Despues = np.array([13.6,14.6,12.6,15.7,11.1,16.6,13.2,19.5,16.8,18.6])
+
+DF2 = pl.DataFrame(
+  {
+    'Antes': Antes,
+    'Despues': Despues
+  }
+).with_columns(
+  Diferencia = pl.col("Despues") - pl.col("Antes")
+)
+```
+
+### Prueba
+
+```{python}
+stats.ttest_rel(Despues, Antes)
+```
+
+```{python}
+pg.ttest(x=Despues, y=Antes, alternative='two-sided', 
+         confidence=1-alfa, 
+         paired=True
+         )
+```
+
+```{python}
+pg.ttest(x=DF2["Diferencia"], y=0, alternative='two-sided', 
+         confidence=1-alfa
+         )
+```
+
+### Tamanho del efecto
+
+$$
+d_{av} = \frac{\bar{d}}{\sqrt{\frac{s_1^2+s_2^2}{2}}}
+$$
+
+$$
+d_z = \frac{\bar{d}}{s_d}
+$$
+
+$$
+d_{rm} = \frac{\bar{d}}{\sqrt{s_1^2 + s_2^2-2 \cdot r \cdot s_1 \cdot s_2}}\sqrt{2(1-r)}
+$$
+
+#### $d$ de Cohen, media de desviaciones estandar
+
+```{python}
+d_av = pg.compute_effsize(Despues, Antes, eftype='cohen', paired=True)
+d_av
+```
+
+#### $d$ de Cohen, desviacion estandar de la diferencia
+
+```{python}
+d_z = pg.compute_effsize(DF2["Diferencia"], 0, eftype='cohen')
+d_z
+```
+
+#### $d$ de Cohen, media de desviaciones estandar controlando por correlacion
+
+```{python}
+r = stats.pearsonr(Antes,Despues)[0]
+d_bar = DF2["Diferencia"].mean()
+s1 = Despues.std(ddof=1)
+s2 = Antes.std(ddof=1)
+d_r = d_bar / (np.sqrt(s1**2 + s2**2 - 2*r*s1*s2)) * (np.sqrt(2 * (1-r)))
+d_r
+```
+
+#### Tamanho de efecto en lenguaje comun (CLES)
+
+```{python}
+d = d_av
+
+CLES = pl.DataFrame({
+  'd': d,
+  'PS': stats.norm.cdf(np.abs(d)/np.sqrt(2)),
+  'U3': stats.norm.cdf(np.abs(d)),
+  'OVL': 2 * stats.norm.cdf(-np.abs(d)/2)
+}
+)
+CLES
+```
+
+# Correlacion
+
+$$H_0 : \rho = 0$$
+
+```{python}
+alfa = .1
+a = np.array([8,16,12,13,16,14,16,11,15,13])
+b = np.array([7,8,10,12,14,9,13,6,9,10])
+c = np.array([3,5,9,5,5,8,13,3,9,9])
+```
+
+## Prueba
+
+```{python}
+r = stats.pearsonr(a,b)
+r_ci = r.confidence_interval(confidence_level=1-alfa)
+
+print(f"r: {r[0]:.3f}, IC {(1-alfa)*100:.0f}% ({r_ci[0]:.3f}, {r_ci[1]:.3f})")
+```
+
+```{python}
+pg.corr(a,b,method='pearson')
+```
