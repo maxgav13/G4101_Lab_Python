@@ -570,6 +570,10 @@ print(dat1.groupby("Gender")["Age"].aggregate("mean"))
 
 print(dat1.groupby(["Gender","Smoke"])["Age"].agg("mean"))
 
+print(dat1.groupby(["Gender","Smoke"])["Age"].agg(['mean', 'std']))
+
+print(dat1.groupby(["Gender"])[["Age","LungCap"]].agg(['mean', 'std']))
+
 print(dat1.groupby("Gender").agg(
   N=("Gender", "size"),
   Age_mean=("Age", "mean"),
