@@ -1,0 +1,390 @@
+---
+title: "Lab 8: Estadistica Inferencial - Pruebas 2"
+author: "Maximiliano Garnier Villarreal"
+lang: es
+toc: true
+toc-depth: 3
+toc-title: Contenidos
+number-sections: true
+highlight-style: pygments
+theme: sandstone
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Codigo"
+    code-tools: true
+    html-math-method: katex
+  pdf: 
+    prefer-html: false
+  docx: default
+execute:
+  warning: false
+  error: false
+  echo: true
+---
+
+# Paquetes
+
+```{python}
+#| label: setup
+#| include: false
+
+import numpy as np
+import pandas as pd
+from plotnine import scale_y_reverse
+from plotnine..themes.themeable import axis_text_y
+from networkx import center
+import polars as pl
+from scipy import stats
+import pingouin as pg
+import statsmodels.stats.api as sms
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+from statsmodels.graphics.mosaicplot import mosaic
+import plotnine as p9     
+import matplotlib.pyplot as plt
+
+p9.theme_set(p9.theme_minimal(base_size = 14))
+```
+
+# ANOVA
+
+$$H_0 : \mu_1 = \mu_2 = \mu_3 = \dotsb = \mu_n$$
+
+```{python}
+dat1 = pd.read_csv('data/anova MgO.csv')
+alfa = .05
+myvar = 'MgO (%)'
+```
+
+## Estadisticas por grupo
+
+```{python}
+pl.DataFrame(dat1).group_by(
+  "Location"
+  ).agg(
+    pl.len().alias("N"),
+    pl.col("MgO").mean().name.suffix("_mean"),
+    pl.col("MgO").std(ddof=1).name.suffix("_std"),
+    )
+```
+
+```{python}
+dat1.groupby('Location')['MgO'].agg(['count','mean', 'std']) # o 'size' en vez de 'count'
+```
+
+## Grafico
+
+```{python}
+(p9.ggplot(dat1, p9.aes("Location", "MgO")) +
+  p9.stat_summary(fun_data = "mean_cl_normal",
+                  fun_args = {'confidence_interval': .95},
+                  geom = "pointrange",
+                  color = "red",
+                  size=1) +
+  p9.labs(x='', y = myvar) +
+  p9.theme_bw())
+```
+
+## Prueba de igualdad de varianzas
+
+La prueba de igualdad de varianzas se realiza utilizando el test de Levene.
+
+```{python}
+# Levene Test
+pg.homoscedasticity(dat1, dv='MgO', group='Location', center='mean')
+
+# Brown-Forsythe
+pg.homoscedasticity(dat1, dv='MgO', group='Location', center='median')
+
+# Bartlett
+pg.homoscedasticity(dat1, dv='MgO', group='Location', method='bartlett')
+```
+
+```{python}
+var_igual = True
+```
+
+Si las varianzas son diferentes la prueba se llama ANOVA de Welch, si son iguales se llama simplemente ANOVA.
+
+## Prueba
+
+Con igualdad de varianzas
+
+```{python}
+anova_tb = pg.anova(dv='MgO', between='Location', data=dat1, detailed=True)
+print(anova_tb)
+```
+
+Sin igualdad de varianzas, en este caso se utiliza la ANOVA de Welch. La funcion **NO** muestra el tamanho del efecto ($\eta^2$) correcto.
+
+```{python}
+welch_tb = pg.welch_anova(dv='MgO', between='Location', data=dat1)
+print(welch_tb)
+```
+
+## Tamanho del efecto
+
+Para ANOVA con varianzas iguales
+
+$$
+\epsilon^2 = \frac{SC_{efecto} - v_{efecto}CM_{error}}{SC_{total}}
+$$
+
+$$
+\omega^2 = \frac{v_{efecto}(CM_{efecto}-CM_{error})}{SC_{total}+CM_{error}}=\frac{SC_{efecto} - v_{efecto}CM_{error}}{SC_{total}+CM_{error}}
+$$
+
+$$
+\eta^2 = \frac{SC_{efecto}}{SC_{total}}
+$$
+
+Para ANOVA de Welch o ANOVA con varianzas diferentes
+
+$$
+\epsilon^2 = \frac{F-1}{F + \frac{v_{error}}{v_{efecto}}}
+$$
+
+$$
+\omega^2 = \frac{F-1}{F+\frac{v_{error+1}}{v_{efecto}}}
+$$
+
+$$
+\eta^2 = \frac{F \cdot v_{efecto}}{F \cdot v_{efecto}+v_{error}}
+$$
+
+### Epsilon-cuadrado ($\epsilon^2$)
+
+```{python}
+
+```
+
+### Omega-cuadrado ($\omega^2$)
+
+```{python}
+
+```
+
+### Eta-cuadrado ($\eta^2$)
+
+```{python}
+
+```
+
+## Analisis Post-hoc
+
+```{python}
+if var_igual == True:
+  ph = pg.pairwise_tukey(dv='MgO', between='Location', data=dat1, effsize='hedges')
+  # ph = pg.pairwise_tests(dv='MgO', between='Location', data=dat1, effsize='hedges', alpha=alfa, padjust='holm')
+else:
+  ph = pg.pairwise_gameshowell(dv='MgO', between='Location', data=dat1, effsize='hedges')
+ph
+```
+
+
+# Datos categoricos
+
+## Prueba-$\chi^2$ de bondad de ajuste
+
+$H_o$: Datos observados siguen la distribucion/proporcion propuesta
+
+```{python}
+alfa = .05
+obs = pd.Series({'N': 90, 'S': 110}) # conteos observados
+
+N_gof = sum(obs)
+p = np.array([.5, .5]) # proporciones esperadas
+esp = p * N_gof
+```
+
+### Prueba
+
+```{python}
+CHI_gof = stats.chisquare(f_obs=obs, f_exp=esp)
+CHI_gof
+```
+
+```{python}
+binom_test = stats.binomtest(k = 110, n = 200, p = .5) # binomial test
+print(binom_test)
+print(binom_test.proportion_ci(confidence_level=1-alfa))
+```
+
+### Tamanho del efecto
+
+$$
+\phi = V = \sqrt{\frac{\chi^2}{N}}
+$$
+
+#### $V$ de Cramer
+
+```{python}
+# V = np.sqrt(CHI_gof.statistic / N_gof)
+V = sm.stats.chisquare_effectsize(obs, esp)
+print(f" V: {V:.2f}")
+```
+
+## Prueba-$\chi^2$ de homogeneidad
+
+$H_o$: Proporcion de items es homogenea entre muestras
+
+## Prueba-$\chi^2$ de independencia/asociacion
+
+$H_o$: No hay relacion entre variables $H_o$: Las variables son independientes entre si
+
+```{python}
+alfa = .05
+
+dat2 = pd.read_csv('data/chi2 homogeneidad clastos.csv')
+dat2 = pd.read_csv('data/chi2 independencia.csv')
+
+# selecciona columnas de texto y las convierte en categoricas manteniendo el orden
+str_cols = dat2.select_dtypes(include=['object', 'string']).columns
+for c in str_cols:
+    dat2[c] = pd.Categorical(dat2[c], categories=pd.unique(dat2[c]), ordered=False)
+
+dat2.columns
+```
+
+```{python}
+x_val = dat2.columns[1]
+y_val = dat2.columns[0]
+
+x_tab = pd.crosstab(index=dat2[x_val], columns=dat2[y_val], margins=False)
+print(x_tab)
+
+# clastos = pd.DataFrame(
+#     data=[
+#         [23, 32, 16, 20],  # cuarzo
+#         [10,  8, 16, 14],  # pedernal
+#         [17, 10, 18, 16],  # basalto
+#     ],
+#     index=['cuarzo', 'pedernal', 'basalto'],
+#     columns=[1, 2, 3, 4]
+# )
+
+N_h = x_tab.sum().sum()
+```
+
+### Graficos
+
+```{python}
+(p9.ggplot(dat2, p9.aes(x_val,fill=y_val)) + 
+  p9.geom_bar(position = 'fill') +
+  p9.scale_fill_brewer(type='qual', palette='Dark2') +
+  p9.theme(axis_text_y=p9.element_blank(),
+           axis_title_y=p9.element_blank()))
+```
+
+### Prueba
+
+```{python}
+CHI_h = stats.chi2_contingency(x_tab)
+print(CHI_h)
+```
+
+```{python}
+h_expected, h_observed, h_stats = pg.chi2_independence(dat2, x=x_val, y=y_val)
+print(h_stats)
+```
+
+### Tamanho del efecto
+
+$$
+V = \sqrt{\frac{\chi^2}{N \cdot v_{min}}}
+$$
+
+#### $V$ de Cramer
+
+```{python}
+print(f" V: {h_stats['cramer'][0]:.2f}")
+```
+
+### Analisis Post-hoc
+
+```{python}
+ncomp_h = np.prod(h_expected.shape)
+new_a_h = alfa/ncomp_h
+z_crit_h = np.abs(stats.norm.ppf(new_a_h/2))
+z_crit_h
+```
+
+```{python}
+h_z_resids = sm.stats.Table(x_tab).standardized_resids
+print(h_z_resids)
+```
+
+```{python}
+df_resid = pd.DataFrame(resid_s, columns=['z_resid'])
+df_resid['signif'] = np.where(df_resid['z_resid'].abs() > abs(z_crit_h), '*', 'ns')
+df_resid
+```
+
+### Grafico resumen
+
+```{python}
+resid_s = h_z_resids.stack()
+
+from matplotlib import cm, colors as mcolors
+max_abs = max(abs(resid_s.max()), abs(resid_s.min()))
+norm = mcolors.Normalize(vmin=-max_abs, vmax=max_abs)
+cmap = cm.get_cmap("RdBu")
+
+# color para casillas no significativas
+nonsig_color = "#d3d3d3"
+
+# Construye el mapa de colores con claves convertidas a cadenas (tupla de cadenas).
+# Solo las casillas con |residual| > z_crit_h reciben el color del mapa de colores; las demás obtienen un gris neutro.
+color_map = {
+    tuple(map(str, k)): (mcolors.to_hex(cmap(norm(v))) if abs(v) > z_crit_h else nonsig_color)
+    for k, v in resid_s.items()
+}
+
+# # properties function must lookup the stringified key that mosaic provides
+# props = lambda key: {
+#     'color': color_map[tuple(map(str, key))],
+#     'edgecolor': 'black',
+#     'linewidth': 1.2 if abs(resid_s.loc[tuple(map(str, key))]) > z_crit_h else 0.6
+# }
+
+def _normalize_mosaic_key(key):
+    """Return (clasto_lowercase, capa_int) to match resid_s index."""
+    cl = str(key[0]).lower()
+    try:
+        ca = int(key[1])
+    except Exception:
+        try:
+            ca = int(str(key[1]))
+        except Exception:
+            ca = str(key[1])
+    return (cl, ca)
+
+def tile_props(key):
+    nk = _normalize_mosaic_key(key)
+    try:
+        resid = resid_s.loc[nk]
+    except KeyError:
+        # fallback: try stringified tuple (what you previously built into color_map)
+        resid = resid_s.get(tuple(map(str, key)), None)
+    color = color_map[tuple(map(str, key))]
+    lw = 0.6 if resid is None or abs(resid) <= z_crit_h else 1.2
+    return {'color': color, 'edgecolor': 'black', 'linewidth': lw}
+```
+
+```{python}
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+fig, ax = plt.subplots(figsize=(8, 6))
+mosaic(x_tab.stack(), properties=tile_props, gap=0.02, ax=ax)
+
+# barra de color para la escala continua de residuos (las casillas grises no se asignarán al mapa de colores)
+smappable = cm.ScalarMappable(norm=norm, cmap=cmap)
+smappable.set_array([])
+divider = make_axes_locatable(ax)
+cax = divider.append_axes("right", size="10%", pad=3)
+fig.colorbar(smappable, cax=cax, label='Residuos estandarizados', location='right')
+plt.tight_layout()
+plt.show()
+```
