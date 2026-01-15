@@ -32,9 +32,6 @@ execute:
 
 import numpy as np
 import pandas as pd
-from plotnine import scale_y_reverse
-from plotnine..themes.themeable import axis_text_y
-from networkx import center
 import polars as pl
 from scipy import stats
 import pingouin as pg

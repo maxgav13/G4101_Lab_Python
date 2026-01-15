@@ -1,0 +1,494 @@
+---
+title: "Lab 9: Estadistica Inferencial - No Parametrica"
+author: "Maximiliano Garnier Villarreal"
+lang: es
+toc: true
+toc-depth: 3
+toc-title: Contenidos
+number-sections: true
+highlight-style: pygments
+theme: sandstone
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Codigo"
+    code-tools: true
+    html-math-method: katex
+  pdf: 
+    prefer-html: false
+  docx: default
+execute:
+  warning: false
+  error: false
+  echo: true
+---
+
+# Paquetes
+
+```{python}
+#| label: setup
+#| include: false
+
+import numpy as np
+import pandas as pd
+from PIL.ImageOps import pad
+import polars as pl
+from scipy import stats
+import pingouin as pg
+import statsmodels.stats.api as sms
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+import plotnine as p9     
+import matplotlib.pyplot as plt
+
+p9.theme_set(p9.theme_minimal(base_size = 14))
+
+def signed_rank(x):
+    return np.sign(x) * pd.Series(x).rank().values
+```
+
+> Para las pruebas no parametricas se trabaja con los datos **ranqueados**
+
+# Correlacion de Spearman
+
+$$H_0 : \rho_s = 0$$
+
+```{python}
+a = np.array([8,16,12,13,16,14,16,11,15,13])
+b = np.array([7,8,10,12,14,9,13,6,9,10])
+c = np.array([3,5,9,5,5,8,13,3,9,9])
+
+a_rank = pd.Series(a).rank().values
+b_rank = pd.Series(b).rank().values
+c_rank = pd.Series(c).rank().values
+
+alfa = .1
+```
+
+```{python}
+r = stats.spearmanr(a,b)
+print(f"r: {r[0]:.3f}, p: {r[1]:.3f}")
+```
+
+```{python}
+r = stats.pearsonr(a_rank, b_rank)
+r_ci = r.confidence_interval(confidence_level=1-alfa)
+
+print(f"r: {r[0]:.3f}, IC {(1-alfa)*100:.0f}% ({r_ci[0]:.3f}, {r_ci[1]:.3f})")
+```
+
+```{python}
+pg.corr(a,b,method='spearman')
+```
+
+# Prueba de rango con signo de Wilcoxon
+
+$$H_0 : \text{mediana muestra} = \text{mediana hipotetica}$$
+
+```{python}
+verm = np.array([6.1, 5.5, 5.3, 6.8, 7.6, 5.3, 6.9, 6.1, 5.7])
+alfa = .05
+mu = 7
+```
+
+## Prueba
+
+```{python}
+stats.wilcoxon(verm - mu)
+```
+
+La función `pg.wilcoxon` de **pingouin** realiza la misma prueba y devuelve un resultado similar, incluyendo el tamanho del efecto $r_b$.
+
+```{python}
+pg.wilcoxon(verm - mu)
+```
+
+## Tamanho del efecto
+
+$$
+r = \frac{|Z|}{\sqrt{N}}
+$$
+
+$$
+r_b = \frac{2 \cdot(w_+ - w_-)}{N \cdot (N+1)}
+$$
+
+$$
+cles \ (PS) = \frac{2 \cdot w_{max}}{N \cdot (N+1)} 
+$$
+
+Funcion para obtener los tamaños de efecto.
+
+```{python}
+def wilcoxon_effects(x, y=None, mu=0):
+    """
+    Calcula tamaños de efecto para la prueba de Wilcoxon.
+    - Si y is None: one-sample (x - mu)
+    - Si y provisto: pareada (x - y)
+    Devuelve dict con n, W_plus, W_minus, Z_approx, r, r_b, CLES y scipy_wilcoxon (stat, p).
+    """
+    x = np.asarray(x)
+    if y is None:
+        d = x - mu
+    else:
+        y = np.asarray(y)
+        d = x - y
+
+    # eliminar ceros
+    mask = (d != 0)
+    d = d[mask]
+    n = len(d)
+    if n == 0:
+        raise ValueError("No quedan diferencias (todas cero).")
+
+    ranks = pd.Series(np.abs(d)).rank(method="average").values
+    signs = np.sign(d)
+
+    W_plus = ranks[signs > 0].sum()
+    W_minus = ranks[signs < 0].sum()
+    W_min = min(W_plus, W_minus)
+
+    # esperanza y varianza (sin correcciones por empates)
+    expected_W = n * (n + 1) / 4
+    var_W = n * (n + 1) * (2 * n + 1) / 24
+
+    # Z aproximado (normal)
+    Z = (W_plus - expected_W) / np.sqrt(var_W)
+
+    # tamaños de efecto
+    r = abs(Z) / np.sqrt(n)                      # correlación r
+    r_b = 2 * (W_plus - W_minus) / (n * (n + 1))  # rank-biserial (pareado / one-sample)
+    cles = 2 * max(W_plus, W_minus) / (n * (n + 1))  # CLES (probabilidad de superioridad)
+
+    # resultado de scipy (estadístico W y p-value)
+    try:
+        scipy_res = stats.wilcoxon(d)
+        scipy_stat, scipy_p = float(scipy_res.statistic), float(scipy_res.pvalue)
+    except Exception:
+        scipy_stat, scipy_p = None, None
+
+    return {
+        "n": n,
+        "W_plus": W_plus,
+        "W_minus": W_minus,
+        "W_min": W_min,
+        "expected_W": expected_W,
+        "var_W": var_W,
+        "Z_approx": Z,
+        "r": r,
+        "r_b (rank_biserial)": r_b,
+        "CLES": cles,
+        "scipy_wilcoxon_stat": scipy_stat,
+        "scipy_wilcoxon_p": scipy_p
+    }
+```
+
+```{python}
+wilcoxon_effects(verm, mu=7)
+```
+
+# Prueba de suma de rangos de Wilcoxon o Prueba-U de Mann-Whitney
+
+$$H_0 : \bar{R}_1 = \bar{R}_2$$
+
+```{python}
+A = np.array([25, 40, 34, 37, 38, 35, 29, 32, 35, 44, 27, 33, 37, 38, 36])
+B = np.array([45, 37, 36, 38, 49, 47, 32, 41, 38, 45, 33, 39, 46, 47, 40])
+alfa = .05
+
+data_dict = {
+    'A': A,
+    'B': B
+}
+
+mol = pd.concat({k: pd.Series(v) for k, v in data_dict.items()}) \
+       .reset_index(level=0) \
+       .rename(columns={'level_0': 'ind', 0: 'values'}) \
+       .reset_index(drop=True)
+
+mol['ranking'] = mol['values'].rank()
+mol_res = mol.groupby('ind').agg(n=('values', 'size'),
+                              valor_medio=('values', 'mean'),
+                              valor_mediana=('values', 'median'),
+                              rango_medio=('ranking', 'mean'),
+                              w=('ranking', 'sum')).reset_index()
+mol_res['u'] = mol_res['w'] - (mol_res['n'] * (mol_res['n'] + 1)) / 2
+print(mol_res)
+```
+
+## Prueba
+
+```{python}
+stats.mannwhitneyu(A, B, alternative='two-sided')
+```
+
+## Tamanho del efecto
+
+$$
+r = \frac{|Z|}{\sqrt{N}}
+$$
+
+$$
+r_b = \frac{2 \cdot (\bar{R}_1-\bar{R}_2)}{N}
+$$
+
+$$
+\delta = \frac{2 \cdot U}{n_1n_2}-1 
+$$
+
+$$
+cles \ (PS) = \frac{U_{max}}{n_1n_2} 
+$$
+
+La función `pg.mwu` de **pingouin** realiza la misma prueba y devuelve un resultado similar, incluyendo el tamanho del efecto $r_b$ y $cles (PS)$.
+
+```{python}
+pg.mwu(A, B, alternative='two-sided')
+```
+
+# Prueba de Kruskal-Wallis
+
+$$H_0 : \bar{R}_1 = \bar{R}_2 = \bar{R}_3 = \dotsb = \bar{R}_n$$
+
+```{python}
+dat1 = pd.read_csv('data/anova MgO.csv')
+
+alfa = .05
+
+dat1['ranking'] = dat1['MgO'].rank()
+kw_res = dat1.groupby('Location').agg(n=('MgO', 'size'),
+                              valor_medio=('MgO', 'mean'),
+                              valor_mediana=('MgO', 'median'),
+                              rango_medio=('ranking', 'mean'),
+                              w=('ranking', 'sum')).reset_index()
+kw_res
+```
+
+## Prueba
+
+```{python}
+pg.kruskal(dat1, dv='MgO', between='Location')
+```
+
+## Tamanho del efecto
+
+### Epsilon-cuadrado ($\epsilon_{ord}^2$)
+
+$$
+\epsilon_{ord}^2 = \frac{H}{(N^2-1)/(N+1)}
+$$
+
+```{python}
+(7.65) / ((12^2 - 1)/(12 + 1))
+```
+
+
+### Eta-cuadrado ($\eta_H^2$)
+
+$$
+\eta_H^2 = \frac{H - k + 1}{N - k}
+$$
+
+```{python}
+(7.65 - 3 + 1) / (12 - 3)
+```
+
+Funcion que calcula los efectos de Kruskal-Wallis.
+
+```{python}
+def kruskal_effects(data=None, dv=None, group=None, groups_list=None):
+    """
+    Calcula H (Kruskal-Wallis) y tamaños de efecto epsilon^2 y eta_H^2.
+    - data, dv, group: DataFrame y nombres de columnas (dv: variable, group: factor)
+    - groups_list: lista de arrays/iterables (alternativa a data)
+    Devuelve dict con H, p, N, k, epsilon2, eta_H2.
+    """
+    if groups_list is None:
+        if data is None or dv is None or group is None:
+            raise ValueError("Proporcione data+dv+group o groups_list")
+        grouped = data.groupby(group)[dv].apply(list)
+        groups = [np.asarray(g) for g in grouped.values]
+    else:
+        groups = [np.asarray(g) for g in groups_list]
+
+    # eliminar NA dentro de cada grupo
+    groups = [g[~pd.isna(g)] for g in groups]
+    k = len(groups)
+    N = sum(len(g) for g in groups)
+    if k < 2 or N == 0:
+        raise ValueError("Se requieren al menos dos grupos con datos.")
+
+    kr = stats.kruskal(*groups)
+    H = float(kr.statistic)
+    p = float(kr.pvalue)
+
+    # tamaños de efecto
+    epsilon2 = H / ((N**2 - 1) / (N + 1)) if N > 1 else np.nan
+    eta_H2 = (H - k + 1) / (N - k) if (N - k) > 0 else np.nan
+    if not np.isnan(eta_H2) and eta_H2 < 0:
+        eta_H2 = 0.0
+
+    return {
+        "H": H,
+        "p": p,
+        "N": N,
+        "k": k,
+        "epsilon2": epsilon2,
+        "eta_H2": eta_H2
+    }
+```
+
+```{python}
+kruskal_effects(data=dat1, dv='MgO', group='Location')
+```
+
+## Analisis Post-hoc
+
+```{python}
+import scikit_posthocs as sp
+
+dunn_df = sp.posthoc_dunn(dat1, val_col='MgO', group_col='Location', p_adjust='holm')
+dunn_df
+```
+
+# Bootstrap con *rsample*
+
+Remuestreo con remplazamiento, a cada una de la muestras se le calcula el estadistico o dato de interes. El intervalo de confianza es a partir de cuantiles, por lo general 2.5% y 97.5% para un $1 - \alpha = 95 \%$
+
+## Media ($\bar{x}$)
+
+```{python}
+mu = 7
+alfa = .05
+n = length(verm)
+
+set.seed(4101)
+m = bootstraps(data = tibble(verm), times = 1000)
+
+avg = function(split) {
+  split %>% 
+    analysis() %>% 
+    pull(1) %>% 
+    mean()
+}
+
+d = function(split) {
+  vec = split %>% 
+    analysis() %>% 
+    pull(1)  
+  d = (mean(vec) - mu) / sd(vec)
+  return(d)
+}
+
+# avg2 = as_mapper(~ .x %>% analysis %>% pull(1) %>% mean)
+# avg3 = compose(mean, partial(pull, var=1), analysis)
+
+m = m %>% 
+  mutate(avg = map_dbl(splits, ~avg(.)),
+         d = map_dbl(splits, ~d(.)),
+         )
+```
+
+```{python}
+m.s = m %>% 
+  summarise(across(where(is.numeric),
+                   list(media = ~mean(.x),
+                        sd = ~sd(.x),
+                        q1 = ~quantile(.x,alfa/2),
+                        q2 = ~quantile(.x,.5),
+                        q3 = ~quantile(.x,1-alfa/2)),
+                   .names = '{.col}_{.fn}'))
+
+m.s %>% 
+  pivot_longer(cols = everything(),
+               names_to = c('param','stat'),
+               names_sep = '_',
+               values_to = 'value') %>% 
+  arrange(param)
+
+myvar = 'avg' # variable a graficar: avg, d
+
+ggplot(m, aes(get(myvar))) +
+  geom_histogram(bins = 20, col = 'black', fill = 'grey80') +
+  geom_vline(xintercept = unlist(m.s %>% select(starts_with(str_glue('{myvar}_q')))), 
+             col = c('blue','red','blue')) +
+  labs(x = myvar)
+
+```
+
+## $R^2$
+
+```{python}
+set.seed(4101)
+
+alfa = .05
+
+R2 = bootstraps(data = mol, times = 1000, strata = 'ind')
+
+r2 = function(split) {
+  split %>% 
+    analysis() %>% 
+    lm(values ~ ind, data = .) %>% 
+    glance() %>% 
+    pull(r.squared)
+}
+
+R2 = R2 %>% 
+  mutate(r2 = map_dbl(splits, ~r2(.)))
+```
+
+```{python}
+R2.s = R2 %>% 
+  summarise(across(where(is.numeric),
+                   list(media = ~mean(.x),
+                        q1 = ~quantile(.,alfa/2),
+                        q2 = ~quantile(.,.5),
+                        q3 = ~quantile(.,1-alfa/2)),
+                   .names = '{.col}_{.fn}'))
+R2.s
+
+ggplot(R2, aes(r2)) +
+  geom_histogram(bins = 20, col = 'black', fill = 'grey80') +
+  geom_vline(xintercept = R2.s[-1] %>% unlist(), 
+             col = c('blue','red','blue'))
+```
+
+## $\eta^2$
+
+```{python}
+set.seed(4101)
+alfa = .05
+eta2 = bootstraps(data = Stacked, times = 1000, strata = 'ind')
+
+eta = function(split) {
+  dat = split %>% 
+    analysis() 
+  H = kruskal.test(values ~ ind, data=dat) %>% 
+    tidy() %>% 
+    pull(statistic)
+  N = nrow(dat)
+  k = nlevels(dat$ind)
+  eta = (H - k + 1) / (N - k)
+  return(eta)
+}
+
+eta2 = eta2 %>% 
+  mutate(eta2 = map_dbl(splits, ~eta(.)))
+```
+
+```{python}
+eta2.s = eta2 %>% 
+  summarise(across(where(is.numeric),
+                   list(media = ~mean(.x),
+                        q1 = ~quantile(.,alfa/2),
+                        q2 = ~quantile(.,.5),
+                        q3 = ~quantile(.,1-alfa/2)),
+                   .names = '{.col}_{.fn}'))
+eta2.s
+
+ggplot(eta2, aes(eta2)) +
+  geom_histogram(bins = 20, col = 'black', fill = 'grey80') +
+  geom_vline(xintercept = eta2.s[-1] %>% unlist(), 
+             col = c('blue','red','blue'))
+```
