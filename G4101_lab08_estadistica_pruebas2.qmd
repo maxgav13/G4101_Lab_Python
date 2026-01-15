@@ -156,20 +156,44 @@ $$
 
 ### Epsilon-cuadrado ($\epsilon^2$)
 
-```{python}
+ANOVA
 
+```{python}
+(anova_tb.loc[0,'SS'] - (anova_tb.loc[0,'DF']*anova_tb.loc[1,'MS'])) / (anova_tb['SS'].sum())
+```
+
+Welch
+
+```{python}
+(welch_tb['F'] - 1) / (welch_tb['F'] + welch_tb['ddof2']/welch_tb['ddof1'])
 ```
 
 ### Omega-cuadrado ($\omega^2$)
 
-```{python}
+ANOVA
 
+```{python}
+(anova_tb.loc[0,'SS'] - (anova_tb.loc[0,'DF']*anova_tb.loc[1,'MS'])) / (anova_tb['SS'].sum() + anova_tb.loc[1,'MS'])
+```
+
+Welch
+
+```{python}
+(welch_tb['F'] - 1) / (welch_tb['F'] + (welch_tb['ddof2']+1)/welch_tb['ddof1'])
 ```
 
 ### Eta-cuadrado ($\eta^2$)
 
-```{python}
+ANOVA
 
+```{python}
+anova_tb.loc[0,'SS'] / (anova_tb['SS'].sum())
+```
+
+Welch
+
+```{python}
+(welch_tb['F'] * welch_tb['ddof1']) / (welch_tb['F'] * welch_tb['ddof1'] + welch_tb['ddof2'])
 ```
 
 ## Analisis Post-hoc
@@ -266,6 +290,10 @@ print(x_tab)
 # )
 
 N_h = x_tab.sum().sum()
+```
+
+```{python}
+dat2_counts = dat2.groupby([x_val,y_val]).value_counts().reset_index()
 ```
 
 ### Graficos
@@ -383,8 +411,13 @@ mosaic(x_tab.stack(), properties=tile_props, gap=0.02, ax=ax)
 smappable = cm.ScalarMappable(norm=norm, cmap=cmap)
 smappable.set_array([])
 divider = make_axes_locatable(ax)
-cax = divider.append_axes("right", size="10%", pad=3)
+cax = divider.append_axes("right", size="2%", pad=1)
 fig.colorbar(smappable, cax=cax, label='Residuos estandarizados', location='right')
 plt.tight_layout()
 plt.show()
+```
+
+```{python}
+dat2_res = df_resid.reset_index().assign(count=dat2_counts['count'])
+dat2_res
 ```
