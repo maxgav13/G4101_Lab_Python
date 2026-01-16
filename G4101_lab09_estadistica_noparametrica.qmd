@@ -32,7 +32,6 @@ execute:
 
 import numpy as np
 import pandas as pd
-from PIL.ImageOps import pad
 import polars as pl
 from scipy import stats
 import pingouin as pg

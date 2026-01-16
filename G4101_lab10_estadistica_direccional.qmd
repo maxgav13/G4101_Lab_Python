@@ -1,0 +1,321 @@
+---
+title: "Lab 10: Estadistica Direccional"
+author: "Maximiliano Garnier Villarreal"
+lang: es
+toc: true
+toc-depth: 3
+toc-title: Contenidos
+number-sections: true
+highlight-style: pygments
+theme: sandstone
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Codigo"
+    code-tools: true
+    html-math-method: katex
+  pdf: 
+    prefer-html: false
+  docx: default
+execute:
+  warning: false
+  error: false
+  echo: true
+---
+
+# Paquetes
+
+```{python}
+#| label: setup
+#| include: false
+
+import numpy as np
+import pandas as pd
+import polars as pl
+from scipy import stats
+import pingouin as pg
+
+import plotnine as p9     
+import matplotlib.pyplot as plt
+
+p9.theme_set(p9.theme_minimal(base_size = 14))
+```
+
+# Vector de mediciones angulares
+
+```{python}
+theta = np.array([255, 239, 222, 231, 199, 271, 222, 274, 228, 246, 
+          177, 199, 257, 201, 237, 209, 216, 180, 182, 250, 
+          219, 196, 197, 246, 218, 235, 232, 243, 232, 180, 
+          231, 254, 242, 149, 212, 210, 230, 205, 220, 268])
+```
+
+# Ajuste para datos no-direccionales
+
+Si los datos son no-direccionales deben multiplicarse por 2 para convertirlos a direccionales y realizar los calculos sobre estos
+
+Direccion de datos:
+
+-   `d=0` para no-direccional
+-   `d=1` para direccional
+
+```{python}
+d = 1
+
+theta = np.where(d==1, theta, theta*2)
+
+thetarad = np.radians(theta)
+N = len(theta)
+```
+
+# A mano
+
+## Analisis de una muestra
+
+### Componentes del vector medio
+
+```{python}
+S = np.sum(np.sin(thetarad))
+C = np.sum(np.cos(thetarad))
+meanrad = np.arctan(S/C) # direccion media en radianes
+meandeg = np.degrees(meanrad) # direccion media en grados
+```
+
+### Verdadera direccion media
+
+Para datos no-direccionales hay que dividir por 2 la direccion verdadera.
+
+```{python}
+meantrue = np.where(
+  (S > 0) & (C > 0), meandeg,
+  np.where((S < 0) & (C > 0), meandeg + 360,
+           meandeg + 180)
+)
+meantrue
+
+# verdadera direccion media de datos no-direccionales
+meantrue = np.where(d == 0, meantrue/2, meantrue)
+meantrue
+```
+
+### Otras estadisticas
+
+-   $\bar{R}$: resultante media
+-   $V$: varianza circular
+-   $v$: desviacion estandar circular
+-   $\kappa$: parametro de concentracion
+
+```{python}
+R = np.sqrt(S**2+C**2) # resultante
+Rbar = R/N # resultante media
+V = 1-Rbar # varianza circular
+v = np.sqrt(-2*np.log(Rbar)) # desviacion estandar circular
+k_ml = np.where(Rbar < .53, 2*Rbar + Rbar**3 + 5/6*Rbar**5,
+                  np.where(Rbar < .85, -.4 + 1.39*Rbar + .43/(1-Rbar),
+                  (Rbar**3 - 4*Rbar**2 + 3*Rbar)**(-1)))
+k_b = np.where(N > 15, k_ml,
+                 np.where(k_ml < 2, np.max(np.array([k_ml - 2*(N*k_ml)**(-1),0])),
+                 (N-1)**3*k_ml/(N**3+N)))
+
+print(R, Rbar)
+print(V, v)
+print(k_ml, k_b)
+```               
+
+### Prueba de aleatoriedad
+
+$$H_0: k = 0, \text{ los datos siguen una distribucion aleatoria}$$
+
+```{python}
+z_r = N*Rbar**2
+p_r = np.where(N >= 50, np.exp(-z_r),
+               np.exp(-z_r)*(1+(2*z_r-z_r**2)/(4*N)-
+                             (24*z_r-132*z_r**2+76*z_r**3-9*z_r**4)/(288*N**2)))
+print(z_r, p_r)
+```
+
+```{python}
+a = .05
+R_crit = np.sqrt((-np.log(a)-(2*np.log(a)+ \
+(np.log(a))**2)/(4*N))/N)
+R_crit
+```
+
+### Prueba de tendencia (cono de confianza)
+
+$$H_0: \bar{\theta} = \theta_0$$
+
+```{python}
+k = k_ml
+a = 0.05
+se = (1/np.sqrt(N * Rbar * k))
+cono = np.arcsin(se*stats.norm.ppf(1-a/2))*180/np.pi
+if np.isnan(cono):
+  se = (1/np.sqrt(N * Rbar * k))*180/np.pi
+  cono = (se*stats.norm.ppf(1-a/2))
+
+cono
+cono_sup = meantrue + cono
+cono_inf = meantrue - cono
+print(cono_inf, meantrue, cono_sup)
+```
+
+### Diagrama de rosas
+
+```{python}
+bin_size = 20
+bins = int(360/bin_size)
+e = np.linspace(0,2*np.pi,bins+1)
+b = np.linspace(2*np.pi/(bins*2),2*np.pi-2*np.pi/(bins*2),bins)
+n,e = np.histogram(thetarad,bins=e)
+```
+
+```{python}
+plt.figure()
+ax = plt.subplot(projection='polar')
+ax.bar(b,np.sqrt(n),width=2*np.pi/bins)
+ax.set_xticks(e[0:bins])
+ax.set_theta_offset(np.pi/2)
+ax.set_theta_direction(-1)
+plt.show()
+```
+
+## Analisis de dos muestras
+
+$$H_0: \bar{\theta}_1 = \bar{\theta}_2$$
+
+Recordar realizar los ajustes necesarios si se trabaja con datos no-direccionales
+
+```{python}
+theta2 = np.array([225, 208, 172, 198, 204, 183, 190, 212, 247, 
+           127, 167, 234, 217, 192, 212, 171, 169, 210, 
+           245, 222, 185, 227, 193, 178, 187, 182, 194, 
+           217, 168, 211, 234, 204, 221, 198, 261, 228, 
+           146, 201, 146, 231])
+
+d = 1
+
+theta2 = np.where(d==1, theta2, theta2*2)
+
+theta2rad = np.radians(theta2)
+```
+
+```{python}
+thetaall = np.concatenate((theta,theta2))
+thetaallrad = np.radians(thetaall)
+Nall = len(thetaall)
+```
+
+### Igualdad de parametro de concentracion
+
+```{python}
+f_k = stats.vonmises.fit(thetarad)[0]/stats.vonmises.fit(theta2rad)[0]
+stats.f.ppf(1-a,len(theta)-1,len(theta2)-1)
+```
+
+### Igualdad de direccion media
+
+```{python}
+R1 = pg.circular.circ_r(thetarad)*len(thetarad)
+R2 = pg.circular.circ_r(theta2rad)*len(theta2rad)
+Rt = pg.circular.circ_r(thetaallrad)*len(thetaallrad)
+kt = stats.vonmises.fit(thetaallrad)[0]
+
+f = np.where(kt > 2, 
+           ((Nall - 2)*(R1+R2-Rt))/(Nall-R1-R2),
+           (1+3/(8*kt))*((Nall-2)*(R1+R2-Rt))/(Nall-R1-R2))
+
+v1 = 1
+v2 = Nall-2
+
+fcrit = stats.f.ppf(1-a,v1,v2)
+dec = f > fcrit
+p = stats.f.sf(f,v1,v2)
+
+print(R1, R2, Rt)
+print(kt)
+print(f, fcrit, dec, p)
+```
+
+# Con funciones
+
+## Una muestra
+
+### Direccion media
+
+```{python}
+meantrue = np.degrees(stats.circmean(thetarad))
+print(meantrue)
+```
+
+### Otras estadisticas
+
+```{python}
+pg.circular.circ_r(thetarad) # resultante media
+stats.vonmises.fit(thetarad)[0] # parametro concentracion
+stats.circstd(thetarad) # desviacion estandar
+stats.circvar(thetarad) # varianza
+```
+
+### Prueba de aleatoriedad
+
+```{python}
+pg.circular.circ_rayleigh(thetarad)
+```
+
+### Prueba de tendencia
+
+```{python}
+samp.ci = vm.bootstrap.ci(thetarad, bias = F, alpha = a)
+theta.ci = deg(samp.ci$mu.ci)
+kappa.ci = samp.ci$kappa.ci
+theta.ci = ifelse(theta.ci < 0, theta.ci+360, theta.ci)
+theta.ci
+kappa.ci
+```
+
+### Varios en una
+
+```{python}
+dir_stats_2D(theta,dir = 1,conf.level = 1-a)
+```
+
+```{python}
+Directional::circ.summary(theta,rads = F)
+```
+
+## Dos+ muestras
+
+```{python}
+grps = rep(1:2,
+           c(length(theta),length(theta2)))
+```
+
+### Prueba de parametro de concentracion
+
+```{python}
+conc.test(u = thetaall,
+          ina = grps,
+          rads = F) # 2+
+```
+
+### Prueba de direccion media
+
+```{python}
+# Parametros de concentracion iguales
+watson.williams.test(list(thetac, theta2c)) # 2+
+
+rao.homogeneity(list(thetarad, theta2rad)) # 2+
+
+hcfcirc.boot(thetarad, theta2rad, rads = T) # 2
+hcf.circaov(thetaall, grps, rads = F) # 2+
+
+lrcirc.boot(thetarad, theta2rad, rads = T) # 2
+lr.circaov(thetaall, grps, rads = F) # 2+
+
+# Parametros de concentracion diferentes
+hetcirc.boot(thetarad, theta2rad, rads = T) # 2
+het.circaov(thetaall, grps, rads = F) # 2+
+```
+
