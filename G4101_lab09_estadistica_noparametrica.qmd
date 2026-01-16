@@ -202,6 +202,12 @@ data_dict = {
     'B': B
 }
 
+mol = pd.DataFrame({
+    'values': np.concatenate([A, B]),
+    # 'ind': ['A']*len(A) + ['B']*len(B) 
+    'ind': np.concatenate([['A']*len(A), ['B']*len(B)])
+})
+
 mol = pd.concat({k: pd.Series(v) for k, v in data_dict.items()}) \
        .reset_index(level=0) \
        .rename(columns={'level_0': 'ind', 0: 'values'}) \
@@ -352,143 +358,157 @@ dunn_df = sp.posthoc_dunn(dat1, val_col='MgO', group_col='Location', p_adjust='h
 dunn_df
 ```
 
-# Bootstrap con *rsample*
+# Bootstrap
 
 Remuestreo con remplazamiento, a cada una de la muestras se le calcula el estadistico o dato de interes. El intervalo de confianza es a partir de cuantiles, por lo general 2.5% y 97.5% para un $1 - \alpha = 95 \%$
 
 ## Media ($\bar{x}$)
 
 ```{python}
-mu = 7
-alfa = .05
-n = length(verm)
+data_seq = (verm,) # los datos deben ser una secuencia (tupla)
+rng = np.random.default_rng(4101)
 
-set.seed(4101)
-m = bootstraps(data = tibble(verm), times = 1000)
-
-avg = function(split) {
-  split %>% 
-    analysis() %>% 
-    pull(1) %>% 
-    mean()
-}
-
-d = function(split) {
-  vec = split %>% 
-    analysis() %>% 
-    pull(1)  
-  d = (mean(vec) - mu) / sd(vec)
-  return(d)
-}
-
-# avg2 = as_mapper(~ .x %>% analysis %>% pull(1) %>% mean)
-# avg3 = compose(mean, partial(pull, var=1), analysis)
-
-m = m %>% 
-  mutate(avg = map_dbl(splits, ~avg(.)),
-         d = map_dbl(splits, ~d(.)),
-         )
+res = stats.bootstrap(data_seq, 
+                      np.mean, 
+                      confidence_level=1-alfa, 
+                      n_resamples=9999, 
+                      method='BCa',
+                      rng=rng)
 ```
 
 ```{python}
-m.s = m %>% 
-  summarise(across(where(is.numeric),
-                   list(media = ~mean(.x),
-                        sd = ~sd(.x),
-                        q1 = ~quantile(.x,alfa/2),
-                        q2 = ~quantile(.x,.5),
-                        q3 = ~quantile(.x,1-alfa/2)),
-                   .names = '{.col}_{.fn}'))
-
-m.s %>% 
-  pivot_longer(cols = everything(),
-               names_to = c('param','stat'),
-               names_sep = '_',
-               values_to = 'value') %>% 
-  arrange(param)
-
-myvar = 'avg' # variable a graficar: avg, d
-
-ggplot(m, aes(get(myvar))) +
-  geom_histogram(bins = 20, col = 'black', fill = 'grey80') +
-  geom_vline(xintercept = unlist(m.s %>% select(starts_with(str_glue('{myvar}_q')))), 
-             col = c('blue','red','blue')) +
-  labs(x = myvar)
-
-```
-
-## $R^2$
-
-```{python}
-set.seed(4101)
-
-alfa = .05
-
-R2 = bootstraps(data = mol, times = 1000, strata = 'ind')
-
-r2 = function(split) {
-  split %>% 
-    analysis() %>% 
-    lm(values ~ ind, data = .) %>% 
-    glance() %>% 
-    pull(r.squared)
-}
-
-R2 = R2 %>% 
-  mutate(r2 = map_dbl(splits, ~r2(.)))
+res_df = pd.DataFrame(res.bootstrap_distribution,columns=['x_bar'])
 ```
 
 ```{python}
-R2.s = R2 %>% 
-  summarise(across(where(is.numeric),
-                   list(media = ~mean(.x),
-                        q1 = ~quantile(.,alfa/2),
-                        q2 = ~quantile(.,.5),
-                        q3 = ~quantile(.,1-alfa/2)),
-                   .names = '{.col}_{.fn}'))
-R2.s
+print(f"Media: {np.mean(res.bootstrap_distribution):.2f}")
+print(f"Bootstrap IC {(1-alfa)*100:.0f}%: ({res.confidence_interval.low:.4f}, {res.confidence_interval.high:.4f})")
+```
 
-ggplot(R2, aes(r2)) +
-  geom_histogram(bins = 20, col = 'black', fill = 'grey80') +
-  geom_vline(xintercept = R2.s[-1] %>% unlist(), 
-             col = c('blue','red','blue'))
+```{python}
+(p9.ggplot(res_df, p9.aes(x = 'x_bar')) +
+  p9.geom_histogram(bins = 20, color = 'black', fill = 'grey') +
+  p9.geom_vline(xintercept = np.mean(res.bootstrap_distribution), color = 'blue') +
+  p9.geom_vline(xintercept = res.confidence_interval.low, color = 'red') +
+  p9.geom_vline(xintercept = res.confidence_interval.high, color = 'red'))
+```
+
+Funcion para bootstrap estratificado
+
+```{python}
+# python
+import numpy as np
+import pandas as pd
+from typing import Callable, Optional, Dict, Any
+
+def stratified_bootstrap(df: pd.DataFrame,
+                         group_col: str,
+                         stat_func: Callable[[pd.DataFrame], Any],
+                         n_boot: int = 1000,
+                         strata_n: Optional[Dict[Any,int]] = None,
+                         random_state: Optional[int] = None,
+                         ci: float = 0.95):
+    """
+    Stratified bootstrap.
+    - df: DataFrame completo
+    - group_col: columna con la etiqueta de estrato
+    - stat_func: función que recibe un DataFrame (la muestra completa) y devuelve un escalar o dict de estimadores
+    - n_boot: número de remuestreos
+    - strata_n: dict opcional {estrato: tamaño_remuestreo}. Si None usa el tamaño observado por estrato.
+    - random_state: semilla
+    - ci: nivel de confianza (por ejemplo 0.95)
+    Devuelve dict con 'distribution' (DataFrame), 'ci' (dict) y 'summary' (DataFrame resumen).
+    """
+    rng = np.random.default_rng(random_state)
+    groups = {name: group.reset_index(drop=True) for name, group in df.groupby(group_col)}
+    # determinar tamaños por estrato
+    if strata_n is None:
+        strata_n = {name: len(g) for name, g in groups.items()}
+
+    results = []
+    for _ in range(n_boot):
+        parts = []
+        for name, g in groups.items():
+            n = int(strata_n.get(name, len(g)))
+            if n == 0:
+                continue
+            idx = rng.integers(0, len(g), size=n)
+            parts.append(g.iloc[idx])
+        sample = pd.concat(parts, ignore_index=True)
+        res = stat_func(sample)
+        results.append(res)
+
+    # normalizar salida a DataFrame
+    if len(results) == 0:
+        raise ValueError("No hay resultados de bootstrap.")
+    # si stat_func devuelve escalares numéricos
+    if np.isscalar(results[0]):
+        arr = np.array(results)
+        dist_df = pd.DataFrame({"stat": arr})
+        lower = np.percentile(arr, (1 - ci)/2*100)
+        upper = np.percentile(arr, (1 + ci)/2*100)
+        ci_dict = {"stat": (lower, upper)}
+        summary = pd.DataFrame({
+            "estimate": [arr.mean()],
+            "std_error": [arr.std(ddof=1)],
+            f"ci_lower_{ci:.2f}": [lower],
+            f"ci_upper_{ci:.2f}": [upper]
+        })
+    else:
+        # si devuelve dicts o múltiples estadísticas
+        # convertir lista de dict -> DataFrame
+        dist_df = pd.DataFrame(results)
+        ci_dict = {}
+        rows = []
+        for col in dist_df.columns:
+            arr = dist_df[col].dropna().to_numpy()
+            lower = np.percentile(arr, (1 - ci)/2*100)
+            upper = np.percentile(arr, (1 + ci)/2*100)
+            ci_dict[col] = (lower, upper)
+            rows.append({
+                "stat": col,
+                "estimate": arr.mean(),
+                "std_error": arr.std(ddof=1),
+                f"ci_lower_{ci:.2f}": lower,
+                f"ci_upper_{ci:.2f}": upper
+            })
+        summary = pd.DataFrame(rows).set_index("stat")
+
+    return {
+        "distribution": dist_df,
+        "ci": ci_dict,
+        "summary": summary
+    }
 ```
 
 ## $\eta^2$
 
 ```{python}
-set.seed(4101)
-alfa = .05
-eta2 = bootstraps(data = Stacked, times = 1000, strata = 'ind')
-
-eta = function(split) {
-  dat = split %>% 
-    analysis() 
-  H = kruskal.test(values ~ ind, data=dat) %>% 
-    tidy() %>% 
-    pull(statistic)
-  N = nrow(dat)
-  k = nlevels(dat$ind)
+def eta(df):
+  res = pg.kruskal(df, dv='MgO', between='Location')
+  H = res['H'][0]
+  N = len(df)
+  k = res['ddof1'][0]
   eta = (H - k + 1) / (N - k)
-  return(eta)
-}
-
-eta2 = eta2 %>% 
-  mutate(eta2 = map_dbl(splits, ~eta(.)))
+  return eta
 ```
 
 ```{python}
-eta2.s = eta2 %>% 
-  summarise(across(where(is.numeric),
-                   list(media = ~mean(.x),
-                        q1 = ~quantile(.,alfa/2),
-                        q2 = ~quantile(.,.5),
-                        q3 = ~quantile(.,1-alfa/2)),
-                   .names = '{.col}_{.fn}'))
-eta2.s
+alfa = .05
 
-ggplot(eta2, aes(eta2)) +
-  geom_histogram(bins = 20, col = 'black', fill = 'grey80') +
-  geom_vline(xintercept = eta2.s[-1] %>% unlist(), 
-             col = c('blue','red','blue'))
+res = stratified_bootstrap(df=dat1, group_col='Location', 
+                           stat_func=eta, ci=1-alfa,
+                           n_boot=10000, random_state=4101)
+```
+
+```{python}
+res["summary"]
+```
+
+```{python}
+(p9.ggplot(res["distribution"], p9.aes(x = 'stat')) +
+  p9.geom_histogram(bins = 20, color = 'black', fill = 'grey') +
+  p9.geom_vline(xintercept = res["summary"]['estimate'][0], color = 'blue') +
+  p9.geom_vline(xintercept = res['ci']['stat'][0], color = 'red') +
+  p9.geom_vline(xintercept = res['ci']['stat'][1], color = 'red'))
 ```
