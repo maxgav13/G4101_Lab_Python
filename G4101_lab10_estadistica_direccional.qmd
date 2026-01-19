@@ -35,6 +35,7 @@ import pandas as pd
 import polars as pl
 from scipy import stats
 import pingouin as pg
+import pycircstat2 as pycirc
 
 import plotnine as p9     
 import matplotlib.pyplot as plt
@@ -181,6 +182,17 @@ ax.set_theta_direction(-1)
 plt.show()
 ```
 
+```{python}
+thetac.plot(config={"scatter": {"color" : "blue"},
+                    "mean": {"color" : "red"}, 
+                    "median": False, 
+                    "density": False, 
+                    "rose": {"bins" : 24},
+                    "figsize": (5, 5)
+                    }
+                    )
+```
+
 ## Analisis de dos muestras
 
 $$H_0: \bar{\theta}_1 = \bar{\theta}_2$$
@@ -240,13 +252,21 @@ print(f, fcrit, dec, p)
 
 # Con funciones
 
+```{python}
+thetac = pycirc.Circular(theta, unit='degree')
+theta2c = pycirc.Circular(theta2, unit='degree')
+```
+
 ## Una muestra
 
 ### Direccion media
 
 ```{python}
-meantrue = np.degrees(stats.circmean(thetarad))
-print(meantrue)
+np.degrees(stats.circmean(thetarad))
+```
+
+```{python}
+np.degrees(pycirc.descriptive.circ_mean(thetac.alpha))
 ```
 
 ### Otras estadisticas
@@ -258,64 +278,81 @@ stats.circstd(thetarad) # desviacion estandar
 stats.circvar(thetarad) # varianza
 ```
 
+```{python}
+pycirc.descriptive.circ_r(thetac.alpha) # resultante media
+pycirc.descriptive.circ_std(thetac.alpha) # desviacion estandar
+pycirc.descriptive.circ_var(thetac.alpha) # varianza
+pycirc.descriptive.circ_kappa(thetac.r, thetac.n) # parametro concentracion
+```
+
 ### Prueba de aleatoriedad
 
 ```{python}
 pg.circular.circ_rayleigh(thetarad)
 ```
 
+```{python}
+pycirc.hypothesis.rayleigh_test(thetac.alpha)
+# thetac.mean_test_result
+```
+
+```{python}
+pycirc.hypothesis.watson_test(thetac.alpha, verbose=True)
+pycirc.hypothesis.rao_spacing_test(thetac.alpha, verbose=True)
+pycirc.hypothesis.kuiper_test(thetac.alpha, verbose=True)
+```
+
 ### Prueba de tendencia
 
 ```{python}
-samp.ci = vm.bootstrap.ci(thetarad, bias = F, alpha = a)
-theta.ci = deg(samp.ci$mu.ci)
-kappa.ci = samp.ci$kappa.ci
-theta.ci = ifelse(theta.ci < 0, theta.ci+360, theta.ci)
-theta.ci
-kappa.ci
+np.degrees(pycirc.descriptive.circ_mean_ci(thetac.alpha, ci=1-a, method='dispersion'))
+```
+
+```{python}
+pycirc.hypothesis.V_test(angle=np.radians(200), alpha=thetac.alpha, verbose=True)
+```
+
+```{python}
+pycirc.hypothesis.one_sample_test(angle=np.radians(200), alpha=thetac.alpha, verbose=True)
 ```
 
 ### Varios en una
 
 ```{python}
-dir_stats_2D(theta,dir = 1,conf.level = 1-a)
-```
-
-```{python}
-Directional::circ.summary(theta,rads = F)
+theta2c.summary
 ```
 
 ## Dos+ muestras
 
-```{python}
-grps = rep(1:2,
-           c(length(theta),length(theta2)))
-```
-
 ### Prueba de parametro de concentracion
 
 ```{python}
-conc.test(u = thetaall,
-          ina = grps,
-          rads = F) # 2+
+pycirc.hypothesis.concentration_test(alpha1=thetac.alpha, alpha2=theta2c.alpha, verbose=True)
+```
+
+```{python}
+pycirc.hypothesis.equal_kappa_test([thetac.alpha, theta2c.alpha], verbose=True)
 ```
 
 ### Prueba de direccion media
 
+Parametros de concentracion iguales
+
 ```{python}
-# Parametros de concentracion iguales
-watson.williams.test(list(thetac, theta2c)) # 2+
+pycirc.hypothesis.watson_williams_test([thetac.alpha, theta2c.alpha], verbose=True)
+```
 
-rao.homogeneity(list(thetarad, theta2rad)) # 2+
+```{python}
+pycirc.hypothesis.rao_homogeneity_test([thetac.alpha, theta2c.alpha], verbose=True)
+```
 
-hcfcirc.boot(thetarad, theta2rad, rads = T) # 2
-hcf.circaov(thetaall, grps, rads = F) # 2+
+```{python}
+pycirc.hypothesis.circ_anova([thetac.alpha, theta2c.alpha], method='LRT', f_mod=False, verbose=True)
+```
 
-lrcirc.boot(thetarad, theta2rad, rads = T) # 2
-lr.circaov(thetaall, grps, rads = F) # 2+
+Parametros de concentracion diferentes
 
-# Parametros de concentracion diferentes
-hetcirc.boot(thetarad, theta2rad, rads = T) # 2
-het.circaov(thetaall, grps, rads = F) # 2+
+```{python}
+pycirc.hypothesis.wheeler_watson_test([thetac.alpha, theta2c.alpha], verbose=True)
 ```
 
