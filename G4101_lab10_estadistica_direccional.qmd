@@ -182,17 +182,6 @@ ax.set_theta_direction(-1)
 plt.show()
 ```
 
-```{python}
-thetac.plot(config={"scatter": {"color" : "blue"},
-                    "mean": {"color" : "red"}, 
-                    "median": False, 
-                    "density": False, 
-                    "rose": {"bins" : 24},
-                    "figsize": (5, 5)
-                    }
-                    )
-```
-
 ## Analisis de dos muestras
 
 $$H_0: \bar{\theta}_1 = \bar{\theta}_2$$
@@ -320,6 +309,19 @@ pycirc.hypothesis.one_sample_test(angle=np.radians(200), alpha=thetac.alpha, ver
 
 ```{python}
 theta2c.summary
+```
+
+### Diagrama de rosas
+
+```{python}
+thetac.plot(config={"scatter": {"color" : "blue"},
+                    "mean": {"color" : "red"}, 
+                    "median": False, 
+                    "density": False, 
+                    "rose": {"bins" : 24},
+                    "figsize": (5, 5)
+                    }
+                    )
 ```
 
 ## Dos+ muestras

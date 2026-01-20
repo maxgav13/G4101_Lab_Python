@@ -1,0 +1,391 @@
+---
+title: "Lab 11: Secuencias"
+author: "Maximiliano Garnier Villarreal"
+lang: es
+toc: true
+toc-depth: 3
+toc-title: Contenidos
+number-sections: true
+highlight-style: pygments
+theme: sandstone
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+    code-summary: "Codigo"
+    code-tools: true
+    html-math-method: katex
+  pdf: 
+    prefer-html: false
+  docx: default
+execute:
+  warning: false
+  error: false
+  echo: true
+---
+
+# Paquetes
+
+```{python}
+#| label: setup
+#| include: false
+
+import numpy as np
+import pandas as pd
+import polars as pl
+from scipy import stats
+import pingouin as pg
+import plotnine as p9 
+import matplotlib.pyplot as plt
+import marginaleffects as me
+import statsmodels.formula.api as smf
+import statsmodels.api as sm
+import statsmodels.stats.api as sms
+from statsmodels.tools.eval_measures import rmse
+from statsmodels.stats.anova import anova_lm
+
+p9.theme_set(p9.theme_minimal(base_size = 14))
+```
+
+# Prueba de tendencia (Spearman)
+
+Se determina si la longitud de los intervalos varia en el tiempo/espacio
+
+$$H_0 : \text{longitud de intervalos es igual}$$
+
+```{python}
+a = .05
+
+x = np.array([0.5,2.3,3.2,4.2,4.9,7,11.4,12.7,14.6,
+      16,21.5,22.5,25.8,30.3,31.9,36.2,42.8])
+x.sort()
+
+n = len(x)
+i = np.arange(1,n,1)
+n_i = len(i)
+h = np.empty(n-1)
+
+for j in range(1,n):
+  h[j-1] = x[j]-x[j-1]
+
+rankh = stats.rankdata(h, method="average")
+cor_dat = pd.DataFrame({'i': i, 'h': h, 'rankh': rankh})
+
+rs = 1-(6*sum((i-rankh)**2))/(n_i*(n_i**2-1))
+
+print(rs)
+```
+
+```{python}
+print(pg.corr(i, h, method='spearman'))
+```
+
+```{python}
+rs = stats.pearsonr(i, rankh)
+rs_ci = stats.pearsonr(i, rankh).confidence_interval(confidence_level=1-a)
+
+print(f"r: {rs[0]:.3f}, IC {(1-a)*100:.0f}% ({rs_ci[0]:.3f}, {rs_ci[1]:.3f})")
+```
+
+# Prueba de corridas
+
+Se determina si la secuencia, dicotomica, es aleatoria o no. Si se tienen datos continuos se tienen que dicotomizar, se pueden usar los criterios con respecto a la mediana (`median`) o arriba-abajo (`up-down`).
+
+$$H_0 : \text{secuencia es aleatoria}$$
+
+```{python}
+dens = np.array([3.57,3.63,2.86,2.94,3.42,2.85,3.67,3.78,3.86,
+         4.02,4.56,4.62,4.31,4.58,5.02,4.68,4.37,4.88,
+         4.52,4.80,4.55,4.62,4.93,4.60,4.51,3.98,4.22,
+         3.52,2.91,3.87,3.52,3.77,3.84,3.92,4.09,3.86,
+         4.13,3.92,3.54])
+
+corridas = sms.runstest_1samp(dens, cutoff='median', correction=False) # test de corridas
+
+print(f"Z: {corridas[0]:.3f}, valor-p: ({corridas[1]:.3f})")
+```
+
+Si se tiene una secuencia dicotómica, se puede usar el test de corridas, pero primero hay que codificarla como datos binarios.
+
+```{python}
+data = ['P', 'F', 'P', 'P', 'F', 'F', 'P', 'F', 'P', 'P', 'P', 'F']
+binary_data = [1 if x == 'P' else 0 for x in data]
+
+sms.runstest_1samp(binary_data, correction=False)
+```
+
+```{python}
+def up_down_runs_test(data):
+    # 1. Convert data to a sequence of '+' and '-' based on up/down movement
+    runs_sequence = []
+    for i in range(1, len(data)):
+        if data[i] > data[i-1]:
+            runs_sequence.append('+')
+        elif data[i] < data[i-1]:
+            runs_sequence.append('-')
+        # Ignore ties (equal values)
+        
+    # 2. Count the number of runs (changes in sign)
+    num_runs = 1  # Start with at least one run
+    for i in range(1, len(runs_sequence)):
+        if runs_sequence[i] != runs_sequence[i-1]:
+            num_runs += 1
+            
+    n = len(runs_sequence) # Total number of non-tie elements
+
+    # 3. Calculate expected number of runs and standard deviation for large samples
+    # Formulas specific to up/down runs test:
+    expected_runs = (2 * n - 1) / 3
+    std_dev_runs = np.sqrt((16 * n - 29) / 90)
+
+    # 4. Calculate the Z-statistic
+    z_statistic = (num_runs - expected_runs) / std_dev_runs
+
+    # 5. Calculate the p-value (two-sided test)
+    p_value = 2 * (1 - stats.norm.cdf(abs(z_statistic)))
+
+    return z_statistic, p_value, num_runs, expected_runs
+```
+
+# Regresion
+
+La idea es determinar si un modelo es significativo o no, o sea si los coeficientes (especialmente la pendiente $\hat{b}_1$) son significativos
+
+$$H_0 : \hat{b}_1 = 0$$
+
+En el caso de un modelo mas complejo de uno lineal la idea es determinar si la adicion de los nuevos terminos es significativa y explica (se ajusta) mejor (a) los datos
+
+$$H_0 : \hat{b}_n = 0$$
+
+```{python reg-data}
+alfa = 0.05
+
+depth = np.arange(1,41,5) # profundidad
+moist = np.array([124,78,54,35,30,21,22,18]) # contenido de humedad
+
+DF3 = pd.DataFrame({'depth': depth, 'moist': moist})
+```
+
+## Grafico
+
+```{python}
+(p9.ggplot(DF3, p9.aes('depth','moist')) + 
+  p9.geom_point())
+```
+
+## Modelo lineal
+
+```{python reg-lin}
+fit1 = smf.ols('moist ~ depth', data=DF3).fit()
+
+fit1.summary(alpha=alfa)
+# fit1.conf_int(alpha=alfa)
+```
+
+## Modelo cuadratico
+
+```{python reg-cuad}
+fit2 = smf.ols('moist ~ depth + I(depth ** 2)', data=DF3).fit()
+
+fit2.summary(alpha=alfa)
+# fit2.conf_int(alpha=alfa)
+```
+
+## Modelo logaritmico
+
+```{python reg-log}
+fit3 = smf.ols('moist ~ np.log(depth)', data=DF3).fit()
+
+fit3.summary(alpha=alfa)
+# fit3.conf_int(alpha=alfa)
+```
+
+```{python}
+# prediction intervals for new data
+new_X = pd.DataFrame({'depth': np.linspace(1, 40, 50)})
+pred = fit3.get_prediction(new_X).summary_frame(alpha=alfa)  # returns useful dataframe
+pred
+```
+
+## Grafico con modelos
+
+```{python reg-plots}
+ggplot(DF3, aes(depth, moist)) + 
+  geom_point(size=3) +
+  geom_smooth(method = 'lm', aes(col = 'Lineal'), se = F) + 
+  geom_smooth(method = 'lm', aes(col = 'Cuadratico'), se = F,
+              formula = y ~ poly(x,2)) +
+  geom_smooth(method = 'lm', aes(col = 'Logaritmico'), se = F,
+              formula = y ~ log(x)) +
+  scale_color_brewer('Modelo', palette = 'Dark2')
+```
+
+```{python reg-lin-plot}
+me.plot_predictions(fit1, condition='depth', points=1)
+```
+
+```{python reg-cuad-plot}
+me.plot_predictions(fit2, condition='depth', points=1)
+```
+
+```{python reg-log-plot}
+me.plot_predictions(fit3, condition='depth', points=1)
+```
+
+## Comparacion de modelos
+
+```{python comp-anova}
+print(anova_lm(fit1,fit2))
+print(anova_lm(fit3,fit2))
+```
+
+# Autocorrelacion
+
+Determina si hay ciclos, patrones, tendencia, sobre una serie de datos ordenados, preferiblemente equidistantemente, en el espacio/tiempo.
+
+```{python}
+from statsmodels.tsa.stattools import acf, pacf
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from statsmodels.stats.diagnostic import acorr_ljungbox
+from statsmodels.stats.stattools import durbin_watson
+```
+
+## Visualizar los datos
+
+```{python ts-data}
+airpassengers = pd.read_csv('data/airpassengers.csv')
+```
+
+**Para este caso**, se considera que el índice es una combinación del anho y el mes, y se crean las columnas correspondientes.
+
+```{python}
+df = airpassengers.copy()  # asume DataFrame con columnas 'index' (año.fracción) y 'value'
+df['year'] = df['index'].astype(int)
+df['month'] = (np.rint((df['index'] - df['year']) * 12).astype(int) + 1).clip(1,12)
+df['date'] = pd.to_datetime(dict(year=df['year'], month=df['month'], day=1))
+df['log_value'] = np.log(df['value'])
+```
+
+```{python}
+(p9.ggplot(df, p9.aes(x='date', y='value')) + 
+  p9.geom_line())
+```
+
+```{python}
+#| eval: false
+
+import plotly.express as px
+
+fig = px.line(df, x='date', y='value',
+              title='AirPassengers',
+              labels={'value':'Passengers', 'date':'Date'},
+              markers=False)
+fig.update_xaxes(dtick="M12", tickformat="%Y", rangeslider_visible=True)
+fig.update_layout(template='plotly_white')
+fig
+```
+
+## Como remover una tendencia de una serie de datos
+
+Pasos:
+
+1.  Determinar si hay una tendencia
+
+    a. Visualizar los datos 
+    b. Construir modelo lineal
+    c. Determinar si la pendiente es significativa
+
+2.  Si hay tendencia, calcular los residuos
+
+### Visualizar datos
+
+```{python}
+(p9.ggplot(df, p9.aes(x='index', y='log_value')) + 
+  p9.geom_line() +
+  p9.geom_smooth(method = 'lm'))
+```
+
+### Modelo y residuos
+
+```{python}
+mod = smf.ols('log_value ~ index', data=df).fit()
+
+mod.summary().tables[1]
+```
+
+```{python}
+df2 = df.copy()
+df2['.resid'] = mod.resid
+```
+
+### Visualizar residuales
+
+```{python}
+(p9.ggplot(df2, p9.aes(x='index', y='.resid')) +
+  p9.geom_line() +
+  p9.geom_hline(yintercept=0, color='red'))
+```
+
+## Grafico de autocorrelacion
+
+```{python}
+n = len(df2)
+lag_max = int(n/3)
+delta = np.diff(df2['index'])[0]
+```
+
+### Sin remover tendencia
+
+```{python}
+plot_acf(df2['value'], lags=lag_max, alpha=alfa, fft=True, bartlett_confint=False, auto_ylims=True)
+```
+
+### Despues de remover tendencia
+
+```{python acf-no-trend}
+plot_acf(df2['.resid'], lags=lag_max, alpha=alfa, fft=True, bartlett_confint=False, auto_ylims=True)
+```
+
+## Prueba de autocorrelacion
+
+```{python}
+acf_vals = acf(df2['.resid'], nlags=lag_max, fft=True)
+```
+
+### Objeto dataframe
+
+```{python}
+acf_df = pd.DataFrame({
+  'lag': np.arange(len(acf_vals)), 
+  'ACF': acf_vals
+  })
+acf_df
+```
+
+```{python acf-test}
+lag_t = acf_df[acf_df['ACF']<0]
+
+start_lag = lag_t.iloc[0, 0]
+start_idx = acf_df.index[acf_df['lag'] == start_lag][0]
+rtau_1 = acf_df.loc[start_idx:, 'ACF'].max() # valor maximo de autocorrelacion
+
+tau_1 = acf_df['lag'][acf_df['ACF'] == rtau_1].values # lag donde ocurre el valor maximo de autocorrelacion
+
+z_1 = rtau_1 * np.sqrt(n - tau_1 + 3) # test de significancia de autocorrelacion
+
+p_ac = stats.norm.cdf(-abs(z_1)) * 2 # valor-p
+
+ac_dist = tau_1 * delta # distancia de autocorrelacion
+
+ac_res = pd.DataFrame({
+  'estimate': rtau_1,
+  'lag': tau_1,
+  'delta': delta,
+  'dist': ac_dist,
+  'statistic': z_1,
+  'p.value': p_ac
+}
+)
+
+ac_res
+```
