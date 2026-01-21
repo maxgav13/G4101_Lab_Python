@@ -58,6 +58,7 @@ print(stats.binom.cdf(k, n, p)) # probabilidad acumulada
 print(sum(stats.binom.pmf([0,1], n, p))) # probabilidad acumulada
 
 print(1 - stats.binom.cdf(k, n, p)) # probabilidad para MAS de x aciertos
+print(stats.binom.sf(k, n, p))
 
 # Calculo de probabilidad binomial a una serie de intentos 
 k2 = list(range(0,7))
@@ -105,6 +106,7 @@ print(stats.poisson.pmf(x, lamb)) # probabilidad puntual
 print(stats.poisson.cdf(x, lamb)) # probabilidad acumulada
 
 print(1 - stats.poisson.cdf(x, lamb)) # probabilidad para MAS de x ocurrencias
+print(stats.poisson.sf(x, lamb))
 
 # Calculo de probabilidad Poisson a una serie de intentos 
 x2 = list(range(0,7))
@@ -188,6 +190,7 @@ print(stats.norm.cdf(1.2) - stats.norm.cdf(-.5))
 ```{python}
 # media=300, sigma=50
 print(1 - stats.norm.cdf(362,loc=300,scale=50)) # probabilidad de X > 362
+print(stats.norm.sf(362,loc=300,scale=50))
 
 (p9.ggplot() 
     + p9.xlim(150, 450)

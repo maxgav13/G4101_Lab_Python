@@ -72,7 +72,7 @@ s = sigma/np.sqrt(n)
 alfa = .05
 
 z1 = stats.norm.interval(confidence=1-alfa, loc = x, scale = s)
-print(f"IC: ({z1[0]:.4f}, {z1[1]:.4f})")
+print(f"IC: [{z1[0]:.4f}, {z1[1]:.4f}]")
 ```
 
 ### Una media sin conocer $\sigma$ - $t$
@@ -92,7 +92,7 @@ alfa = .1
 
 t1 = stats.t.interval(confidence=1-alfa, df=n-1, loc = x, scale = sem)
 # stats.ttest_1samp(vec, popmean=0).confidence_interval(confidence_level=1-alfa)
-print(f"IC: ({t1[0]:.4f}, {t1[1]:.4f})")
+print(f"IC: [{t1[0]:.4f}, {t1[1]:.4f}]")
 ```
 
 Otra forma de calcularlo es usando la libreria statsmodels.
@@ -123,7 +123,7 @@ B = np.array([3.1, 3.1, 2.8, 3.1, 3.0, 2.6, 3.0, 3.0, 3.1, 2.8])
 a = .05
 
 varIgual = stats.ttest_ind(A, B, equal_var=True).confidence_interval(confidence_level=1-a)
-print(f"IC con varianzas iguales: ({varIgual.low:.4f}, {varIgual.high:.4f})")
+print(f"IC con varianzas iguales: [{varIgual.low:.4f}, {varIgual.high:.4f}]")
 ```
 
 #### Varianzas diferentes
@@ -136,7 +136,7 @@ $v = \frac{(s_1^2/n_1 + s_2^2/n_2)^2}{[(s_1^2/n_1)^2/(n_1-1)] + [(s_2^2/n_2)^2/(
 
 ```{python}
 varDif = stats.ttest_ind(A, B, equal_var=False).confidence_interval(confidence_level=1-a)
-print(f"IC con varianzas diferentes: ({varDif.low:.4f}, {varDif.high:.4f})")
+print(f"IC con varianzas diferentes: [{varDif.low:.4f}, {varDif.high:.4f}]")
 ```
 
 Otra forma de calcular ambos intervalos es usando la libreria statsmodels. Para ello se utiliza la clase `CompareMeans` junto con `DescrStatsW`. En el metodo `tconfint_diff` se especifica el parametro `usevar` para indicar si las varianzas son iguales ('pooled') o diferentes ('unequal').
@@ -146,11 +146,11 @@ cm = sms.CompareMeans(sms.DescrStatsW(A), sms.DescrStatsW(B))
 
 # Equal variances: usevar='pooled'
 ci_equal = cm.tconfint_diff(alpha=a, usevar='pooled')
-print(f"IC con varianzas iguales: ({ci_equal[0]:.4f}, {ci_equal[1]:.4f})")
+print(f"IC con varianzas iguales: [{ci_equal[0]:.4f}, {ci_equal[1]:.4f}]")
 
 # Unequal variances: usevar='unequal'
 ci_unequal = cm.tconfint_diff(alpha=a, usevar='unequal')
-print(f"IC con varianzas diferentes: ({ci_unequal[0]:.4f}, {ci_unequal[1]:.4f})")
+print(f"IC con varianzas diferentes: [{ci_unequal[0]:.4f}, {ci_unequal[1]:.4f}]")
 ```
 
 ### Dos medias dependientes sin conocer $\sigma$
@@ -173,7 +173,7 @@ sem_d = s_d/np.sqrt(n)
 t_dep = stats.t.interval(confidence=1-a, df=n-1, loc = x_d, scale = sem_d)
 # stats.ttest_rel(m2, m1).confidence_interval(confidence_level=1-a)
 # sms.DescrStatsW(diferencia).tconfint_mean(alpha=a)
-print(f"IC para dos medias dependientes: ({t_dep[0]:.4f}, {t_dep[1]:.4f})")
+print(f"IC para dos medias dependientes: [{t_dep[0]:.4f}, {t_dep[1]:.4f}]")
 ```
 
 ## Varianza
@@ -195,8 +195,8 @@ chi2_high = stats.chi2.ppf(1 - alfa / 2, df=v)
 lower_bound = (v * s2) / chi2_high
 upper_bound = (v * s2) / chi2_low
 
-print(f"IC para varianza: ({lower_bound:.4f}, {upper_bound:.4f})")
-print(f"IC para desv. est.: ({np.sqrt(lower_bound):.4f}, {np.sqrt(upper_bound):.4f})")
+print(f"IC para varianza: [{lower_bound:.4f}, {upper_bound:.4f}]")
+print(f"IC para desv. est.: [{np.sqrt(lower_bound):.4f}, {np.sqrt(upper_bound):.4f}]")
 ```
 
 ### $F$
@@ -221,8 +221,8 @@ f_high = stats.f.ppf(q = 1 - alfa / 2, dfn = v2, dfd = v1)
 lower_bound = ratio * (1 / f_low)
 upper_bound = ratio * f_high
 
-print(f"IC para razon de varianzas: ({lower_bound:.4f}, {upper_bound:.4f})")
-print(f"IC para razon de desv. est.: ({np.sqrt(lower_bound):.4f}, {np.sqrt(upper_bound):.4f})")
+print(f"IC para razon de varianzas: [{lower_bound:.4f}, {upper_bound:.4f}]")
+print(f"IC para razon de desv. est.: [{np.sqrt(lower_bound):.4f}, {np.sqrt(upper_bound):.4f}]")
 ```
 
 # Valor-p
@@ -230,4 +230,7 @@ print(f"IC para razon de desv. est.: ({np.sqrt(lower_bound):.4f}, {np.sqrt(upper
 ```{python}
 print(1 - stats.norm.cdf(x = 1.18))        # unilateral derecha
 print((1 - stats.norm.cdf(x = 2.34)) * 2)  # bilateral
+
+print(stats.norm.sf(x = 1.18))        # unilateral derecha
+print((stats.norm.sf(x = 2.34)) * 2)  # bilateral
 ```

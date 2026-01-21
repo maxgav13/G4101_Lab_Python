@@ -156,7 +156,7 @@ if np.isnan(cono):
   se = (1/np.sqrt(N * Rbar * k))*180/np.pi
   cono = (se*stats.norm.ppf(1-a/2))
 
-cono
+print(cono)
 cono_sup = meantrue + cono
 cono_inf = meantrue - cono
 print(cono_inf, meantrue, cono_sup)
@@ -212,7 +212,9 @@ Nall = len(thetaall)
 
 ```{python}
 f_k = stats.vonmises.fit(thetarad)[0]/stats.vonmises.fit(theta2rad)[0]
-stats.f.ppf(1-a,len(theta)-1,len(theta2)-1)
+f_k_crit = stats.f.ppf(1-a,len(theta)-1,len(theta2)-1)
+
+print(f_k, f_k_crit)
 ```
 
 ### Igualdad de direccion media
@@ -261,17 +263,17 @@ np.degrees(pycirc.descriptive.circ_mean(thetac.alpha))
 ### Otras estadisticas
 
 ```{python}
-pg.circular.circ_r(thetarad) # resultante media
-stats.vonmises.fit(thetarad)[0] # parametro concentracion
-stats.circstd(thetarad) # desviacion estandar
-stats.circvar(thetarad) # varianza
+print(pg.circular.circ_r(thetarad)) # resultante media
+print(stats.vonmises.fit(thetarad)[0]) # parametro concentracion
+print(stats.circstd(thetarad)) # desviacion estandar
+print(stats.circvar(thetarad)) # varianza
 ```
 
 ```{python}
-pycirc.descriptive.circ_r(thetac.alpha) # resultante media
-pycirc.descriptive.circ_std(thetac.alpha) # desviacion estandar
-pycirc.descriptive.circ_var(thetac.alpha) # varianza
-pycirc.descriptive.circ_kappa(thetac.r, thetac.n) # parametro concentracion
+print(pycirc.descriptive.circ_r(thetac.alpha)) # resultante media
+print(pycirc.descriptive.circ_kappa(thetac.r, thetac.n)) # parametro concentracion
+print(pycirc.descriptive.circ_std(thetac.alpha)) # desviacion estandar
+print(pycirc.descriptive.circ_var(thetac.alpha)) # varianza
 ```
 
 ### Prueba de aleatoriedad
@@ -286,19 +288,15 @@ pycirc.hypothesis.rayleigh_test(thetac.alpha)
 ```
 
 ```{python}
-pycirc.hypothesis.watson_test(thetac.alpha, verbose=True)
-pycirc.hypothesis.rao_spacing_test(thetac.alpha, verbose=True)
-pycirc.hypothesis.kuiper_test(thetac.alpha, verbose=True)
+print(pycirc.hypothesis.watson_test(thetac.alpha, verbose=True))
+print(pycirc.hypothesis.rao_spacing_test(thetac.alpha, verbose=True))
+print(pycirc.hypothesis.kuiper_test(thetac.alpha, verbose=True))
 ```
 
 ### Prueba de tendencia
 
 ```{python}
 np.degrees(pycirc.descriptive.circ_mean_ci(thetac.alpha, ci=1-a, method='dispersion'))
-```
-
-```{python}
-pycirc.hypothesis.V_test(angle=np.radians(200), alpha=thetac.alpha, verbose=True)
 ```
 
 ```{python}

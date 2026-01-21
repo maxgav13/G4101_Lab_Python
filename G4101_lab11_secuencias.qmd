@@ -368,7 +368,7 @@ Pasos:
 ```{python}
 mod = smf.ols('log_value ~ index', data=df).fit()
 
-mod.summary().tables[1]
+print(mod.summary().tables[1])
 ```
 
 ```{python}
@@ -406,13 +406,11 @@ plot_acf(df2['.resid'], lags=lag_max, alpha=alfa, fft=True, bartlett_confint=Fal
 
 ## Prueba de autocorrelacion
 
-```{python}
-acf_vals = acf(df2['.resid'], nlags=lag_max, fft=True)
-```
-
 ### Objeto dataframe
 
 ```{python}
+acf_vals = acf(df2['.resid'], nlags=lag_max, fft=True)
+
 acf_df = pd.DataFrame({
   'lag': np.arange(len(acf_vals)), 
   'ACF': acf_vals

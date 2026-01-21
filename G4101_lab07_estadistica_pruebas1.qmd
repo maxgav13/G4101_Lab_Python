@@ -67,8 +67,8 @@ chi2_stat = (dof * varM) / var0
 
 p_value = 2 * min(stats.chi2.cdf(chi2_stat, dof), stats.chi2.sf(chi2_stat, dof))
 
-print(f"Chi-Square: {chi2_stat:.4f}")
-print(f"valor-p: {p_value:.4f}")
+print(f"Chi-Square (\N{GREEK SMALL LETTER CHI}^2): {chi2_stat:.2f}")
+print(f"valor-p: {p_value:.3e}")
 ```
 
 ## Prueba-$F$ de 2 varianzas
@@ -95,8 +95,8 @@ f_stat = var1 / var2
 
 p_value = 2 * min(stats.f.cdf(f_stat, df1, df2), stats.f.sf(f_stat, df1, df2))
 
-print(f"F: {f_stat:.4f}")
-print(f"valor-p: {p_value:.4f}")
+print(f"F: {f_stat:.2f}")
+print(f"valor-p: {p_value:.3e}")
 ```
 
 # Media
@@ -122,6 +122,7 @@ mu = 7
 
 verm = np.array([6.1, 5.5, 5.3, 6.8, 7.6, 5.3, 6.9, 6.1, 5.7])
 v = len(verm)-1
+print(verm.mean())
 
 t1 = stats.ttest_1samp(a=verm, popmean=mu, alternative="two-sided")
 t1
@@ -211,7 +212,7 @@ DF = pd.concat({k: pd.Series(v) for k, v in data_dict.items()}) \
 
 ```{python}
 pl.DataFrame(DF).group_by(
-  "ind"
+  "ind", maintain_order=True
   ).agg(
     pl.len().alias("N"),
     pl.col("values").mean().name.suffix("_mean"),
@@ -228,6 +229,10 @@ stats.levene(A,B,center='mean')
 Si las varianzas son diferentes la prueba se llama prueba-t de Welch, si son iguales se llama prueba-t de Student.
 
 ### Prueba
+
+```{python}
+A.mean() - B.mean()
+```
 
 ```{python}
 stats.ttest_ind(A, B, alternative='two-sided', equal_var=True)
@@ -311,6 +316,8 @@ DF2 = pl.DataFrame(
 ).with_columns(
   Diferencia = pl.col("Despues") - pl.col("Antes")
 )
+
+print(DF2.select("Diferencia").mean())
 ```
 
 ### Prueba
@@ -403,7 +410,7 @@ c = np.array([3,5,9,5,5,8,13,3,9,9])
 r = stats.pearsonr(a,b)
 r_ci = r.confidence_interval(confidence_level=1-alfa)
 
-print(f"r: {r[0]:.3f}, IC {(1-alfa)*100:.0f}% ({r_ci[0]:.3f}, {r_ci[1]:.3f})")
+print(f"r: {r[0]:.3f}, IC {(1-alfa)*100:.0f}% [{r_ci[0]:.3f}, {r_ci[1]:.3f}]")
 ```
 
 ```{python}

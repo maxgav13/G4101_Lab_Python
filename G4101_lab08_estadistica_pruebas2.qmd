@@ -90,13 +90,13 @@ La prueba de igualdad de varianzas se realiza utilizando el test de Levene.
 
 ```{python}
 # Levene Test
-pg.homoscedasticity(dat1, dv='MgO', group='Location', center='mean')
+print(pg.homoscedasticity(dat1, dv='MgO', group='Location', center='mean'))
 
 # Brown-Forsythe
-pg.homoscedasticity(dat1, dv='MgO', group='Location', center='median')
+print(pg.homoscedasticity(dat1, dv='MgO', group='Location', center='median'))
 
 # Bartlett
-pg.homoscedasticity(dat1, dv='MgO', group='Location', method='bartlett')
+print(pg.homoscedasticity(dat1, dv='MgO', group='Location', method='bartlett'))
 ```
 
 ```{python}

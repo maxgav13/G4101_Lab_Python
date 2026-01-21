@@ -52,7 +52,8 @@ n = 8
 s = sigma/np.sqrt(n)
 
 # probabilidad de X > 3.6 con n=8
-print(1 - stats.norm.cdf(x=3.6, loc=mu, scale=s))
+# print(1 - stats.norm.cdf(x=3.6, loc=mu, scale=s))
+print(stats.norm.sf(x=3.6, loc=mu, scale=s))
 ```
 
 ```{python}
@@ -79,7 +80,8 @@ n = 25
 v = n-1
 t = (518 - 500) / (s/np.sqrt(n))
 
-print(1 - stats.t.cdf(x=t, df=v))
+# print(1 - stats.t.cdf(x=t, df=v))
+print(stats.t.sf(x=t, df=v))
 ```
 
 ```{python}
@@ -108,7 +110,8 @@ v = n-1
 chi=(v*s2)/sigma2
 
 # probabilidad de s2 > 1.2
-print(1 - stats.chi2.cdf(x=chi, df=v))
+# print(1 - stats.chi2.cdf(x=chi, df=v))
+print(stats.chi2.sf(x=chi, df=v))
 ```
 
 ```{python}
@@ -137,7 +140,8 @@ s2_2 = 2
 f = s2_1 / s2_2
 
 # probabilidad de F > 2 con 5 y 8 grados de libertad
-print(1 - stats.f.cdf(x=f, dfn=v1, dfd=v2))
+# print(1 - stats.f.cdf(x=f, dfn=v1, dfd=v2))
+print(stats.f.sf(x=f, dfn=v1, dfd=v2))
 ```
 
 ```{python}
