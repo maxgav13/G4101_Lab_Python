@@ -73,7 +73,7 @@ cor_dat = pd.DataFrame({'i': i, 'h': h, 'rankh': rankh})
 
 rs = 1-(6*sum((i-rankh)**2))/(n_i*(n_i**2-1))
 
-print(rs)
+print(f"r_spearman: {rs:.3f}")
 ```
 
 ```{python}
@@ -84,7 +84,7 @@ print(pg.corr(i, h, method='spearman'))
 rs = stats.pearsonr(i, rankh)
 rs_ci = stats.pearsonr(i, rankh).confidence_interval(confidence_level=1-a)
 
-print(f"r: {rs[0]:.3f}, IC {(1-a)*100:.0f}% ({rs_ci[0]:.3f}, {rs_ci[1]:.3f})")
+print(f"r: {rs[0]:.3f}, IC {(1-a)*100:.0f}% ({rs_ci[0]:.3f}, {rs_ci[1]:.3f}), valor-p: {rs[1]:.3f}")
 ```
 
 # Prueba de corridas
@@ -102,7 +102,7 @@ dens = np.array([3.57,3.63,2.86,2.94,3.42,2.85,3.67,3.78,3.86,
 
 corridas = sms.runstest_1samp(dens, cutoff='median', correction=False) # test de corridas
 
-print(f"Z: {corridas[0]:.3f}, valor-p: ({corridas[1]:.3f})")
+print(f"Z: {corridas[0]:.3f}, valor-p: {corridas[1]:.3f}")
 ```
 
 Si se tiene una secuencia dicotómica, se puede usar el test de corridas, pero primero hay que codificarla como datos binarios.
@@ -111,40 +111,51 @@ Si se tiene una secuencia dicotómica, se puede usar el test de corridas, pero p
 data = ['P', 'F', 'P', 'P', 'F', 'F', 'P', 'F', 'P', 'P', 'P', 'F']
 binary_data = [1 if x == 'P' else 0 for x in data]
 
-sms.runstest_1samp(binary_data, correction=False)
+corridas = sms.runstest_1samp(binary_data, correction=False)
+
+print(f"Z: {corridas[0]:.3f}, valor-p: {corridas[1]:.3f}")
+print(pd.Series(data).value_counts())
 ```
+
+Funcion para calcular el test de corridas arriba-abajo.
 
 ```{python}
 def up_down_runs_test(data):
-    # 1. Convert data to a sequence of '+' and '-' based on up/down movement
+    # 1. Convertir los datos a una secuencia de '+' y '-' según el movimiento ascendente/descendente
     runs_sequence = []
     for i in range(1, len(data)):
         if data[i] > data[i-1]:
             runs_sequence.append('+')
         elif data[i] < data[i-1]:
             runs_sequence.append('-')
-        # Ignore ties (equal values)
+        # Ignorar empates (valores iguales)
         
-    # 2. Count the number of runs (changes in sign)
-    num_runs = 1  # Start with at least one run
+    # 2. Contar el número de corridas (cambios de signo)
+    num_runs = 1  # Comenzar con al menos una corrida
     for i in range(1, len(runs_sequence)):
         if runs_sequence[i] != runs_sequence[i-1]:
             num_runs += 1
             
-    n = len(runs_sequence) # Total number of non-tie elements
+    n = len(runs_sequence) # Número total de elementos sin empate
+    n1 = runs_sequence.count("+")
+    n2 = runs_sequence.count("-")
 
-    # 3. Calculate expected number of runs and standard deviation for large samples
-    # Formulas specific to up/down runs test:
-    expected_runs = (2 * n - 1) / 3
-    std_dev_runs = np.sqrt((16 * n - 29) / 90)
+    # 3. Calcular el número esperado de corridas y la desviación estándar para muestras grandes
+    # Fórmulas específicas para la prueba de corridas arriba/abajo:
+    expected_runs = ((2 * n1 * n2) / (n1 + n2)) + 1
+    std_dev_runs = np.sqrt((2 * n1 * n2 * (2 * n1 * n2 - n1 - n2)) / ((n1 + n2)**2 * (n1 + n2 - 1)))
 
-    # 4. Calculate the Z-statistic
+    # 4. Calcular el estadístico Z
     z_statistic = (num_runs - expected_runs) / std_dev_runs
 
-    # 5. Calculate the p-value (two-sided test)
+    # 5. Calcular el valor-p (prueba bilateral)
     p_value = 2 * (1 - stats.norm.cdf(abs(z_statistic)))
 
-    return z_statistic, p_value, num_runs, expected_runs
+    return z_statistic, p_value, num_runs, expected_runs, n1, n2
+```
+
+```{python}
+up_down_runs_test(dens)
 ```
 
 # Regresion
@@ -178,8 +189,8 @@ DF3 = pd.DataFrame({'depth': depth, 'moist': moist})
 ```{python reg-lin}
 fit1 = smf.ols('moist ~ depth', data=DF3).fit()
 
-fit1.summary(alpha=alfa)
-# fit1.conf_int(alpha=alfa)
+print(fit1.summary(alpha=alfa))
+# print(fit1.conf_int(alpha=alfa))
 ```
 
 ## Modelo cuadratico
@@ -187,8 +198,8 @@ fit1.summary(alpha=alfa)
 ```{python reg-cuad}
 fit2 = smf.ols('moist ~ depth + I(depth ** 2)', data=DF3).fit()
 
-fit2.summary(alpha=alfa)
-# fit2.conf_int(alpha=alfa)
+print(fit2.summary(alpha=alfa))
+# print(fit2.conf_int(alpha=alfa))
 ```
 
 ## Modelo logaritmico
@@ -196,28 +207,32 @@ fit2.summary(alpha=alfa)
 ```{python reg-log}
 fit3 = smf.ols('moist ~ np.log(depth)', data=DF3).fit()
 
-fit3.summary(alpha=alfa)
-# fit3.conf_int(alpha=alfa)
+print(fit3.summary(alpha=alfa))
+# print(fit3.conf_int(alpha=alfa))
 ```
 
 ```{python}
-# prediction intervals for new data
+# intervalos de predicción para nuevos datos
 new_X = pd.DataFrame({'depth': np.linspace(1, 40, 50)})
-pred = fit3.get_prediction(new_X).summary_frame(alpha=alfa)  # returns useful dataframe
-pred
+fit3_pred = fit3.get_prediction(new_X).summary_frame(alpha=alfa)
+print(fit3_pred.head())
 ```
 
 ## Grafico con modelos
 
-```{python reg-plots}
-ggplot(DF3, aes(depth, moist)) + 
-  geom_point(size=3) +
-  geom_smooth(method = 'lm', aes(col = 'Lineal'), se = F) + 
-  geom_smooth(method = 'lm', aes(col = 'Cuadratico'), se = F,
-              formula = y ~ poly(x,2)) +
-  geom_smooth(method = 'lm', aes(col = 'Logaritmico'), se = F,
-              formula = y ~ log(x)) +
-  scale_color_brewer('Modelo', palette = 'Dark2')
+```{python}
+(p9.ggplot(DF3, p9.aes("depth", "moist")) +
+  p9.geom_point(size=3) +
+  p9.geom_smooth(p9.aes(color='"Lin"', fill='"Lin"'), 
+                 method='lm', se=False, alpha=0.2) +
+  p9.geom_smooth(p9.aes(color='"Cuad"', fill='"Cuad"'), 
+                 method='lm', se=False, alpha=0.2,
+                 formula='y ~ x + I(x**2)') +
+  p9.geom_smooth(p9.aes(color='"Log"', fill='"Log"'), 
+                 method='lm', se=False, alpha=0.2,
+                 formula='y ~ np.log(x)') +
+  p9.scale_color_brewer(type='qual', palette=2, name='Modelo') +
+  p9.scale_fill_brewer(type='qual', palette=2, name='Modelo'))
 ```
 
 ```{python reg-lin-plot}
@@ -237,6 +252,48 @@ me.plot_predictions(fit3, condition='depth', points=1)
 ```{python comp-anova}
 print(anova_lm(fit1,fit2))
 print(anova_lm(fit3,fit2))
+```
+
+```{python}
+mods = [fit1, fit2, fit3]
+mods_dict = {"Lin": fit1, "Cuad": fit2, "Log": fit3}
+
+from statsmodels.tools.eval_measures import rmse
+
+# rmse_vals = [rmse(mod.fittedvalues, DF3['moist']) for mod in mods]
+
+rows = []
+for name, m in mods_dict.items():
+    resid = getattr(m, "resid", None)
+    rows.append({
+        "model": name,
+        "AIC": getattr(m, "aic", np.nan),
+        "BIC": getattr(m, "bic", np.nan),
+        "llf": getattr(m, "llf", np.nan),
+        "R2": getattr(m, "rsquared", np.nan),
+        "adj_R2": getattr(m, "rsquared_adj", np.nan),
+        "RMSE": rmse(m.model.endog, m.fittedvalues) if (hasattr(m, "fittedvalues") and hasattr(m.model, "endog")) else np.nan,
+        "MAE": np.mean(np.abs(resid)) if resid is not None else np.nan,
+        "F": getattr(m, "fvalue", np.nan),
+        "F_pvalue": getattr(m, "f_pvalue", np.nan),
+        # "df_model": int(getattr(m, "df_model", np.nan)) if getattr(m, "df_model", None) is not None else np.nan,
+        # "df_resid": int(getattr(m, "df_resid", np.nan)) if getattr(m, "df_resid", None) is not None else np.nan
+    })
+
+df_metrics = pd.DataFrame(rows).set_index("model")
+df_metrics = df_metrics.round(4)
+
+df_metrics
+```
+
+```{python}
+# Transponer y limpiar etiquetas
+df_metrics_T = df_metrics.T
+df_metrics_T.index.name = "statistic"
+df_metrics_T = df_metrics_T.round(4)
+
+# devuelve el DataFrame transpuesto
+df_metrics_T
 ```
 
 # Autocorrelacion
@@ -264,6 +321,7 @@ df['year'] = df['index'].astype(int)
 df['month'] = (np.rint((df['index'] - df['year']) * 12).astype(int) + 1).clip(1,12)
 df['date'] = pd.to_datetime(dict(year=df['year'], month=df['month'], day=1))
 df['log_value'] = np.log(df['value'])
+df['value_diff'] = df['value'].diff()
 ```
 
 ```{python}
