@@ -47,6 +47,7 @@ dependencies:
   - cached-property=1.5.2=hd8ed1ab_1
   - cached_property=1.5.2=pyha770c72_1
   - cairo=1.18.0=hd1e100b_0
+  - cartopy=0.25.0=py311hdb8e4fa_1
   - certifi=2026.1.4=pyhd8ed1ab_0
   - cffi=1.17.1=py311h3eb5a62_1
   - cfitsio=3.470=ha83d327_7
@@ -204,6 +205,7 @@ dependencies:
   - libzlib=1.2.13=hfb2fe0b_6
   - littleutils=0.2.4=pyhd8ed1ab_1
   - llvm-openmp=20.1.7=hdb05f8b_0
+  - llvmlite=0.44.0=py311heb35c27_1
   - lz4-c=1.9.4=hb7217d7_0
   - mapclassify=2.9.0=pyhd8ed1ab_0
   - markdown-it-py=3.0.0=pyhd8ed1ab_1
@@ -237,6 +239,7 @@ dependencies:
   - notebook-shim=0.2.4=pyhd8ed1ab_1
   - nspr=4.36=h5833ebf_0
   - nss=3.100=hc6e9f88_0
+  - numba=0.61.2=py311hdc76553_1
   - numexpr=2.10.1=py311h5d9532f_0
   - numpy=2.0.1=py311he598dae_1
   - numpy-base=2.0.1=py311hfbfe69c_1
@@ -285,6 +288,7 @@ dependencies:
   - pyparsing=3.2.3=pyhd8ed1ab_1
   - pyproj=3.6.1=py311h9a031f7_5
   - pyrolite=0.3.6=pyhd8ed1ab_2
+  - pyshp=3.0.3=pyhd8ed1ab_0
   - pysocks=1.7.1=pyha55dd90_7
   - python=3.11.8=hdf0ec26_0_cpython
   - python-dateutil=2.9.0.post0=pyhe01879c_2
@@ -340,6 +344,7 @@ dependencies:
   - tk=8.6.14=h6ba3021_1
   - tomli=2.2.1=pyhd8ed1ab_1
   - tornado=6.5.1=py311h80987f9_0
+  - tqdm=4.67.1=pyhd8ed1ab_1
   - traitlets=5.14.3=pyhd8ed1ab_1
   - types-python-dateutil=2.9.0.20250516=pyhd8ed1ab_0
   - typing_utils=0.1.0=pyhd8ed1ab_1

@@ -258,8 +258,6 @@ print(anova_lm(fit3,fit2))
 mods = [fit1, fit2, fit3]
 mods_dict = {"Lin": fit1, "Cuad": fit2, "Log": fit3}
 
-from statsmodels.tools.eval_measures import rmse
-
 # rmse_vals = [rmse(mod.fittedvalues, DF3['moist']) for mod in mods]
 
 rows = []
