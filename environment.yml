@@ -106,6 +106,7 @@ dependencies:
   - hyperframe=6.1.0=pyhd8ed1ab_0
   - icu=73.2=hc8870d7_0
   - idna=3.10=pyhd8ed1ab_1
+  - imageio=2.37.0=pyhfb79c49_0
   - imagesize=1.4.1=pyhd8ed1ab_0
   - importlib-metadata=8.7.0=pyhe01879c_1
   - importlib_metadata=8.7.0=h40b2b14_1
@@ -282,6 +283,7 @@ dependencies:
   - pycparser=2.22=pyh29332c3_1
   - pyevtk=1.6.0=pyhb0bfe47_1
   - pygments=2.19.2=pyhd8ed1ab_0
+  - pykrige=1.7.2=py311h5d790af_2
   - pyobjc-core=10.1=py311h80987f9_0
   - pyobjc-framework-cocoa=10.1=py311hb094c41_0
   - pyogrio=0.10.0=py311hcf39714_0
@@ -311,6 +313,7 @@ dependencies:
   - rich=14.0.0=pyh29332c3_0
   - roman-numerals-py=3.1.0=pyhd8ed1ab_0
   - rpds-py=0.22.3=py311h2aea54e_0
+  - scikit-gstat=1.0.22=py311h267d04e_0
   - scikit-learn=1.7.0=py311h47fa2fb_1
   - scikit-posthocs=0.11.4=pyhd8ed1ab_0
   - scipy=1.15.3=py311hb81b3df_0
@@ -376,6 +379,7 @@ dependencies:
       - formulaic==1.2.1
       - geostatspy==0.0.72
       - great-tables==0.20.0
+      - gstatsim==1.2.0
       - htmltools==0.6.0
       - interface-meta==1.3.0
       - marginaleffects==0.2.2
