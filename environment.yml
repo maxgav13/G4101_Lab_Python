@@ -59,11 +59,13 @@ dependencies:
   - cligj=0.7.2=pyhd8ed1ab_2
   - cloudpickle=3.1.2=pyhcf101f3_1
   - colorama=0.4.6=pyhd8ed1ab_1
+  - colorcet=3.1.0=pyhd8ed1ab_1
   - comm=0.2.2=pyhd8ed1ab_1
   - contourpy=1.3.1=py311h48ca7d4_0
   - cpython=3.11.13=py311hd8ed1ab_0
   - cycler=0.12.1=pyhd8ed1ab_1
   - dask-core=2026.1.1=pyhcf101f3_1
+  - datashader=0.18.2=pyhd8ed1ab_0
   - debugpy=1.8.11=py311h313beb8_0
   - decorator=5.2.1=pyhd8ed1ab_0
   - defusedxml=0.7.1=pyhd8ed1ab_0
@@ -232,6 +234,7 @@ dependencies:
   - mplstereonet=0.6.3=pyhd8ed1ab_1
   - mpltern=1.0.4=pyhd8ed1ab_1
   - mpmath=1.3.0=pyhd8ed1ab_1
+  - multipledispatch=0.6.0=pyhd8ed1ab_1
   - munkres=1.1.4=pyhd8ed1ab_1
   - narwhals=1.45.0=pyhe01879c_0
   - nbclient=0.10.2=pyhd8ed1ab_0
@@ -260,6 +263,7 @@ dependencies:
   - pandas=2.2.3=py311hcf29cfe_0
   - pandas-flavor=0.8.1=pyhd8ed1ab_0
   - pandocfilters=1.5.0=pyhd8ed1ab_0
+  - param=2.3.1=pyhc455866_0
   - parso=0.8.4=pyhd8ed1ab_1
   - partd=1.4.2=pyhd8ed1ab_0
   - patsy=1.0.1=pyhd8ed1ab_1
@@ -288,6 +292,7 @@ dependencies:
   - ptyprocess=0.7.0=pyhd8ed1ab_1
   - pure_eval=0.2.3=pyhd8ed1ab_1
   - pycparser=2.22=pyh29332c3_1
+  - pyct=0.6.0=pyhd8ed1ab_0
   - pydantic=2.12.5=pyhcf101f3_1
   - pydantic-core=2.41.5=py311h71babbd_1
   - pyevtk=1.6.0=pyhb0bfe47_1
@@ -321,6 +326,7 @@ dependencies:
   - rfc3339-validator=0.1.4=pyhd8ed1ab_1
   - rfc3986-validator=0.1.1=pyh9f0ad1d_0
   - rich=14.0.0=pyh29332c3_0
+  - rioxarray=0.19.0=pyhd8ed1ab_0
   - roman-numerals-py=3.1.0=pyhd8ed1ab_0
   - rpds-py=0.22.3=py311h2aea54e_0
   - scikit-gstat=1.0.22=py311h267d04e_0
@@ -377,6 +383,7 @@ dependencies:
   - wheel=0.45.1=py311hca03da5_0
   - widgetsnbextension=4.0.14=pyhd8ed1ab_0
   - xarray=2025.12.0=pyhcf101f3_0
+  - xarray-spatial=0.5.2=pyhd8ed1ab_0
   - xerces-c=3.2.5=hf393695_0
   - xyzservices=2025.4.0=pyhd8ed1ab_0
   - xz=5.6.4=h80987f9_1
