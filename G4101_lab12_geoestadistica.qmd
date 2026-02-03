@@ -39,7 +39,7 @@ import rasterio
 import rasterio.plot
 import xarray as xr
 import rioxarray as rxr
-import cartopy
+# import cartopy.crs as ccrs
 
 import geostatspy.GSLIB as GSLIB
 import geostatspy.geostats as geostats
@@ -55,8 +55,6 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from scipy.spatial.distance import pdist
 from sklearn.preprocessing import QuantileTransformer
-# from mpl_toolkits.axes_grid1 import make_axes_locatable
-
 
 p9.theme_set(p9.theme_minimal(base_size = 14))
 p9.theme_update(legend_position='right')
@@ -107,14 +105,7 @@ else:
 
 ## Transformacion de datos
 
-Se transforma (normaliza/estandariza) la variable a una con media de 0 y desviación estándar de 1, esto se logra utilizando la transformacion de cuantiles (`QuantileTransformer`).
-
-```{python}
-#| eval: false
-#| include: false
-
-if transformar: datos[myvar], tv, tns = geostats.nscore(datos, myvar0)
-```
+Una opcion es la normalizacion/estandarizacion de la variable a una con media de 0 y desviación estándar de 1, esto se logra utilizando la transformacion de cuantiles (`QuantileTransformer`).
 
 ```{python quantile-transform}
 if transformar: 
@@ -125,7 +116,7 @@ if transformar:
   # datos[myvar] = var_z
 ```
 
-Se usa la transformacion de Box-Cox donde se debe hallar el parametro $\lambda$ para transformar la variable lo mas cercano a una variable normalmente distribuida. La transformacion logaritmica (natural, base $e$) es un caso especial donde $\lambda=0$.
+Otra opcion es la transformacion de Box-Cox donde se debe hallar el parametro $\lambda$ para transformar la variable lo mas cercano a una variable normalmente distribuida. La transformacion logaritmica (natural, base $e$) es un caso especial donde $\lambda=0$.
 
 La transformacion de Box-Cox se define como:
 $$
@@ -221,7 +212,7 @@ distancias
 
 ```{python outline}
 outline = datos_sf.union_all().convex_hull
-outline_sf = gpd.GeoDataFrame(geometry=[outline], crs=None)
+outline_sf = gpd.GeoDataFrame(geometry=[outline], crs=datos_sf.crs)
 ```
 
 ## Grilla de interpolacion
@@ -800,7 +791,7 @@ da = xr.DataArray(
 )
 da # DataArray
 
-# da.rio.write_crs(None, inplace=True) # asignar CRS si se conoce ej "EPSG:4326"
+# da.rio.write_crs(datos_sf.crs, inplace=True) # asignar CRS si se conoce ej "EPSG:4326"
 
 # da.rio.to_raster(archivo_xr) # exportar GeoTif
 ```
@@ -876,12 +867,12 @@ with rasterio.open(
     width=ras.T.shape[1],
     count=1,
     dtype=ras.dtype,
-    crs=None,
+    crs=datos_sf.crs,
     transform=new_transform
 ) as dst:
     dst.write(np.flipud(ras.T), 1)
 
-print(f"Rasterguardado en: {archivo}")
+print(f"Raster guardado en: {archivo}")
 ```
 
 ## Revisar
