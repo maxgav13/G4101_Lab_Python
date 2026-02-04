@@ -250,6 +250,7 @@ ax = outline_sf.plot(facecolor='none', edgecolor='black', linewidth=1.25)
 datos_sf.plot(column=myvar, cmap='viridis', legend=True, legend_kwds={'label': myvar, 'shrink': 0.8}, ax=ax)
 ax.set_xlabel(x_map)
 ax.set_ylabel(y_map)
+plt.show()
 ```
 
 # Analisis Geoestadistico
@@ -470,6 +471,7 @@ print(f"R^2: {r2:.4f}")
 fig, ax = plt.subplots(figsize=(6, 4))
 ax.scatter(bin_center, gamma, label='Datos')
 fit_model.plot(x_max=bin_center.max(), ax=ax, label='Modelo Ajustado')
+plt.show()
 ```
 
 
@@ -629,7 +631,7 @@ def kfold_cv_gstools(fit_model, coords, values, k=5, normalizer=None, shuffle=Tr
 results = loocv_gstools(
   fit_model, 
   coords, 
-  field, 
+  datos[myvar], 
   normalizer=bc_norm if transformar and transformacion=="Box-Cox" else None
   )
 ```
@@ -638,7 +640,7 @@ results = loocv_gstools(
 results = kfold_cv_gstools(
   fit_model, 
   coords, 
-  field, 
+  datos[myvar], 
   k=10,
   normalizer=bc_norm if transformar and transformacion=="Box-Cox" else None,random_state=0
   )
