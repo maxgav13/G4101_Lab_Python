@@ -196,7 +196,7 @@ Welch
 ## Analisis Post-hoc
 
 ```{python}
-if var_igual == True:
+if var_igual:
   ph = pg.pairwise_tukey(dv='MgO', between='Location', data=dat1, effsize='hedges')
   # ph = pg.pairwise_tests(dv='MgO', between='Location', data=dat1, effsize='hedges', alpha=alfa, padjust='holm')
 else:
@@ -350,9 +350,10 @@ df_resid
 ### Grafico resumen
 
 ```{python}
+from matplotlib import cm, colors as mcolors
+
 resid_s = h_z_resids.stack()
 
-from matplotlib import cm, colors as mcolors
 max_abs = max(abs(resid_s.max()), abs(resid_s.min()))
 norm = mcolors.Normalize(vmin=-max_abs, vmax=max_abs)
 cmap = cm.get_cmap("RdBu")

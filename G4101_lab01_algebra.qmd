@@ -43,12 +43,13 @@ b = np.arange(0,21,4)        # numeros del 0 al 20 cada 4
 c = np.arange(30,51,4)
 d = np.arange(50,19,-5)      # numeros del 50 al 20 cada 5 (decreciente)
 e = np.repeat(12,8)          # numero 12 repetido 8 veces
-f = np.array([1,3,5,7])      # numeros cualquiera
+f = np.array([1,3,5,7])      # numeros cualesquiera
+g = np.tile(f, 3)            # vector fila repetido 3 veces
 
 print(a * 5)
 print(a + 5)
 print(b * c)
-print(np.dot(b,c))  # producto punto
+print(np.dot(b,c))           # producto punto
 ```
 
 ## Matrices

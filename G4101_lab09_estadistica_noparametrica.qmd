@@ -219,7 +219,7 @@ mol_res = mol.groupby('ind').agg(n=('values', 'size'),
                               rango_medio=('ranking', 'mean'),
                               w=('ranking', 'sum')).reset_index()
 mol_res['u'] = mol_res['w'] - (mol_res['n'] * (mol_res['n'] + 1)) / 2
-print(mol_res)
+mol_res
 ```
 
 ## Prueba

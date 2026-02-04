@@ -1,5 +1,5 @@
 ---
-title: "Introduccion a R"
+title: "Introduccion a Python"
 author: "Maximiliano Garnier Villarreal"
 lang: es
 toc: true

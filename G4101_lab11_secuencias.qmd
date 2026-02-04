@@ -151,7 +151,15 @@ def up_down_runs_test(data):
     # 5. Calcular el valor-p (prueba bilateral)
     p_value = 2 * (1 - stats.norm.cdf(abs(z_statistic)))
 
-    return z_statistic, p_value, num_runs, expected_runs, n1, n2
+    return {
+    "z_statistic": z_statistic,
+    "p_value": p_value,
+    "n": n,
+    "num_runs": num_runs,
+    "expected_runs": expected_runs,
+    "n1": n1,
+    "n2": n2
+}
 ```
 
 ```{python}
