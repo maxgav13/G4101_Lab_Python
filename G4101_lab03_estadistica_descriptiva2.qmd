@@ -98,10 +98,10 @@ airq2_pd = airq2.to_pandas()
 Dentro de las funciones para calcular covarianza y correlacion entre variables en **Python** se encuentran:
 
 - `stats.pearsonr(x, y)`: arroja el coeficiente de correlacion de Pearson y el p-valor asociado.
-- `np.corrcoef(x, y)`
-- `np.cov(x, y)`
-- `statistics.correlation(x, y)`
-- `pg.corr(x, y)`: arroja el coeficiente de correlacion de Pearson, Spearman o Kendall entre dos variables, así como resultados adicionales.
+- `np.corrcoef(x, y)`: arroja la matriz de correlacion de Pearson .
+- `np.cov(x, y)`: arroja la matriz de covarianza.
+- `statistics.correlation(x, y)`: arroja el coeficiente de correlacion de Pearson.
+- `pg.corr(x, y)`: arroja el coeficiente de correlacion de Pearson, Spearman o Kendall, así como resultados adicionales.
 
 Aqui se extraen las variables de interes:
 

@@ -34,20 +34,19 @@ import numpy as np
 import pandas as pd
 
 import geopandas as gpd
-import shapely
+# import shapely
 import rasterio
 import rasterio.plot
 import xarray as xr
 import rioxarray as rxr
-# import cartopy.crs as ccrs
 
 import geostatspy.GSLIB as GSLIB
 import geostatspy.geostats as geostats
-import geostatspy
-import pykrige
+# import geostatspy
+# import pykrige
 import gstools as gs
 # import gstatsim as gss
-import skgstat as skg
+# import skgstat as skg
 
 import plotnine as p9
 import matplotlib.pyplot as plt
@@ -99,20 +98,27 @@ transformar = True
 
 if transformar is False:
   myvar = myvar0
+  S = datos[myvar0].var()
 else:
   myvar = f"{myvar0}_trans"
 ```
 
 ## Transformacion de datos
 
-Una opcion es la normalizacion/estandarizacion de la variable a una con media de 0 y desviación estándar de 1, esto se logra utilizando la transformacion de cuantiles (`QuantileTransformer`).
+Una opcion es la normalizacion/estandarizacion de la variable a una con media de 0 y desviación estándar de 1.
+
+```{python normal-score}
+if transformar:
+  var_z, tv, tns = geostats.nscore(datos, myvar0)
+  df_z = pd.DataFrame({'var_z': var_z, 'tv': tv, 'tns': tns}).sort_values('tv')
+```
 
 ```{python quantile-transform}
 if transformar: 
   data = datos[myvar0].values.reshape(-1,1)
   nq = len(data) if len(data) < 500 else 500
   nst_trans = QuantileTransformer(n_quantiles=nq, output_distribution='normal').fit(data)
-  var_z = nst_trans.transform(data)
+  # var_z = nst_trans.transform(data)
   # datos[myvar] = var_z
 ```
 
@@ -138,7 +144,9 @@ La siguiente tabla muestra los valores mas tipicos de $\lambda$ con su respectiv
 |     1     |      $x$       |
 |     2     |     $x^2$      |
 
-```{python box-cox-transform}
+```{python}
+#| label: box-cox-transform
+
 if transformar:
 
   if (datos[myvar0] <= 0).any():
@@ -156,8 +164,7 @@ if transformar:
   var_bc = bc_norm.normalize(datos[myvar0].values)
   # datos[myvar] = var_trans
   msg = f"El lambda para {myvar0} es {bc_lambda:.3f}"
-
-lambda_ = bc_lambda if 'bc_lambda' in locals() else None
+  print(msg)
 ```
 
 La funcion `stats.boxcox_normmax` realiza la busqueda de $\lambda$. Adicionalmente se grafica la normalidad de Box-Cox para observar el valor de $\lambda$. La linea punteada roja indica el valor optimo de $\lambda$.
@@ -166,7 +173,7 @@ La funcion `gs.normalizer.BoxCox` de `gstools` permite realizar la transformacio
 
 ```{python}
 if transformar:
-  transformacion = "Box-Cox"  # "Box-Cox" o "Quantile"
+  transformacion = "Quantile"  # "Box-Cox" o "Quantile"
   datos[myvar] = var_bc if transformacion == "Box-Cox" else var_z
 ```
 
@@ -542,7 +549,7 @@ def loocv_gstools(fit_model, coords, values, normalizer=None):
         "residuals": residuals,
         "kcv_df": kcv_df,
         "rmse": rmse,
-        "mape": mape,
+        # "mape": mape,
         "mae": mae,
         "r2": r2,
         "msdr": msdr,
@@ -619,7 +626,7 @@ def kfold_cv_gstools(fit_model, coords, values, k=5, normalizer=None, shuffle=Tr
         "residuals": residuals,
         "kcv_df": kcv_df,
         "rmse": rmse,
-        "mape": mape,
+        # "mape": mape,
         "mae": mae,
         "r2": r2,
         "msdr": msdr,
@@ -628,6 +635,8 @@ def kfold_cv_gstools(fit_model, coords, values, k=5, normalizer=None, shuffle=Tr
 ```
 
 ```{python xval-loocv}
+#| eval: false
+
 results = loocv_gstools(
   fit_model, 
   coords, 
@@ -648,10 +657,9 @@ results = kfold_cv_gstools(
 
 ```{python xval-metrics}
 print(f"RMSE: {results['rmse']:<.4f}")
-print(f"MAPE: {results['mape']:<.4f}")
 print(f"MAE: {results['mae']:<.4f}")
-print(f"R^2: {results['r2']:<.4f}")
 print(f"MSDR: {results['msdr']:<.4f}")
+print(f"R^2: {results['r2']:<.4f}")
 print(f"Bias: {results['bias']:<.4f}")
 ```
 
@@ -676,35 +684,38 @@ kcv_df = results['kcv_df']
   p9.geom_vline(xintercept = kcv_df['residual'].mean(), color = 'red'))
 ```
 
-## Interpolacion usando kriging ordinario
+## Interpolacion usando kriging
 
-Aqui se ha trabajado unicamente con Kriging Ordinario (KO) ya que es el caso mas sencillo y que aplica en la mayoria de las situaciones.
+Si se estandariza la variable de respuesta, se utiliza Kriging Simple (KS) para la interpolación ya que este asume que se conoce la media y en este caso la media es 0. Si no se transforma la variable o se transforma con Box-Cox se usa Kriging Ordinario (KO).
 
 ```{python}
-OK = gs.krige.Ordinary(
+krig = gs.krige.Krige(
   fit_model, 
   cond_pos=pos, 
   cond_val=field,
   normalizer=bc_norm if transformar and transformacion == "Box-Cox" else None,
-  fit_normalizer=False
+  fit_normalizer=False,
+  mean = 0 if transformar and transformacion == "Quantile" else None
   )
 ```
 
 ```{python}
-OK.structured([x_grid, y_grid])
+krig_pred, krig_var = krig.structured([x_grid, y_grid])
 ```
 
 ```{python}
 if transformar and transformacion == "Quantile":
-  OK_pred = nst_trans.inverse_transform(OK.field.reshape(-1,1)).reshape(OK.field.shape)
-  OK_var = nst_trans.inverse_transform(OK.krige_var.reshape(-1,1)).reshape(OK.krige_var.shape)
-  # OK_var = OK_var - OK_var.min()
-  OK_std = np.sqrt(OK_var)
+  # pred_var = nst_trans.inverse_transform(krig_pred.reshape(-1,1)).reshape(krig_pred.shape)
+  # var_var = nst_trans.inverse_transform(krig_var.reshape(-1,1)).reshape(krig_var.shape)
+  pred_var = np.interp(krig_pred.ravel(),tns,tv).reshape(krig_pred.shape)
+  var_var = np.interp(krig_var.ravel(),tns,tv).reshape(krig_var.shape)
+  # var_var = krig_var
+  std_var = np.sqrt(var_var)
 else:
-  OK_pred = OK.field
-  OK_var = OK.krige_var
-  # OK_var = OK_var - OK_var.min()
-  OK_std = np.sqrt(OK_var)
+  pred_var = krig_pred
+  var_var = krig_var
+  # var_var = krig_var if transformar is False else bc_norm.denormalize(krig_var)
+  std_var = np.sqrt(var_var)
 ```
 
 ## Mapas de prediccion y desviacion estandar
@@ -715,7 +726,7 @@ else:
 fig, axes = plt.subplots(1, 2, figsize=(10, 6))
 
 # Predicción
-pcm0 = axes[0].pcolormesh(grid_x, grid_y, OK_pred.T, cmap='viridis')
+pcm0 = axes[0].pcolormesh(grid_x, grid_y, pred_var.T, cmap='viridis')
 outline_sf.boundary.plot(ax=axes[0], color='white', linewidth=1.25)
 cbar0 = fig.colorbar(pcm0, ax=axes[0], orientation='vertical', label=myvar0)
 # axes[0].scatter(datos_sf[x_coord], datos_sf[y_coord], s=1, color="k")
@@ -725,7 +736,7 @@ axes[0].set_ylabel(y_map)
 axes[0].set_aspect("equal")
 
 # Desviación estándar
-pcm1 = axes[1].pcolormesh(grid_x, grid_y, OK_std.T, cmap='plasma')
+pcm1 = axes[1].pcolormesh(grid_x, grid_y, std_var.T, cmap='plasma')
 outline_sf.boundary.plot(ax=axes[1], color='white', linewidth=1.25)
 cbar1 = fig.colorbar(pcm1, ax=axes[1], orientation='vertical', label='Desviación estándar')
 # axes[1].scatter(datos_sf[x_coord], datos_sf[y_coord], s=1, color="k")
@@ -734,7 +745,7 @@ axes[1].set_xlabel(x_map)
 axes[1].set_ylabel(y_map)
 axes[1].set_aspect("equal")
 
-fig.suptitle('Kriging Ordinario - Predicción y Desviación estándar')
+fig.suptitle('Kriging - Predicción y Desviación estándar')
 plt.tight_layout()
 plt.show()
 ```
@@ -755,18 +766,19 @@ new_transform
 ```{python}
 fig, ax = plt.subplots(figsize=(6, 5))
 
-img = np.flipud(OK_pred.T)
+img = np.flipud(pred_var.T)
 rasterio.plot.show(img, transform=new_transform, ax=ax, cmap='viridis')
 outline_sf.boundary.plot(ax=ax, color='white', linewidth=1.25)
 mappable = ax.get_images()[0] 
 fig.colorbar(mappable, ax=ax, orientation='vertical', label=myvar0)
 
 # extent = (minx, maxx, miny, maxy)
-# im = ax.imshow(OK_pred.T, extent=extent, origin='lower', cmap='viridis', aspect='equal')
+# im = ax.imshow(pred_var.T, extent=extent, origin='lower', cmap='viridis', aspect='equal')
 # cbar = fig.colorbar(im, ax=ax, orientation='vertical', label=myvar0)
 
 ax.set_xlabel(x_map)
 ax.set_ylabel(y_map)
+plt.show()
 ```
 
 ### Objetos xarray
@@ -776,7 +788,7 @@ ax.set_ylabel(y_map)
 ```{python}
 y_grid_xr = np.flip(y_grid)
 
-ras = OK_pred
+ras = pred_var
 tipo = 'pred'
 archivo_xr = 'figs/krige_xr_' + tipo + '.tif'
 
@@ -788,10 +800,10 @@ da = xr.DataArray(
         "y": y_grid_xr
     },
     attrs={
-        "long_name": f"Kriging Ordinario {tipo}"
+        "long_name": f"Kriging Prediccion"
     }
 )
-da # DataArray
+print(da) # DataArray
 
 # da.rio.write_crs(datos_sf.crs, inplace=True) # asignar CRS si se conoce ej "EPSG:4326"
 
@@ -819,20 +831,20 @@ ax.set_aspect("equal")
 y_grid_xr = np.flip(y_grid)
 
 # arreglos con la orientacion correcta
-pred_arr = np.flipud(OK_pred.T)
-var_arr = np.flipud(OK_var.T)
-std_arr = np.flipud(OK_std.T)
+pred_arr = np.flipud(pred_var.T)
+var_arr = np.flipud(var_var.T)
+std_arr = np.flipud(std_var.T)
 
 ds = xr.Dataset(
     {
-        "OK_pred": (("y", "x"), pred_arr),
-        "OK_var":  (("y", "x"), var_arr),
-        "OK_std":  (("y", "x"), std_arr),
+        "pred_var": (("y", "x"), pred_arr),
+        "var_var":  (("y", "x"), var_arr),
+        "std_var":  (("y", "x"), std_arr),
     },
     coords={"x": x_grid, "y": y_grid_xr}
 )
 
-ds  # Dataset
+print(ds)  # Dataset
 ```
 
 
@@ -840,9 +852,9 @@ ds  # Dataset
 
 ```{python}
 res_dict = {
-    'pred': OK_pred.ravel(),
-    'var': OK_var.ravel(),
-    'std': OK_std.ravel()
+    'pred': pred_var.ravel(),
+    'var': var_var.ravel(),
+    'std': std_var.ravel()
 }
 res_df = pd.DataFrame(res_dict)
 res_df
@@ -857,7 +869,7 @@ res_df.describe()
 ## Exportar rasterio
 
 ```{python}
-ras = OK_pred
+ras = pred_var
 tipo = 'pred'
 archivo = 'figs/krige_' + tipo + '.tif'
 
