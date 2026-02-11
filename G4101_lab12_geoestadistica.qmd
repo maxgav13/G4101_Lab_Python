@@ -100,6 +100,7 @@ if transformar is False:
   myvar = myvar0
   S = datos[myvar0].var()
 else:
+  datos.sort_values(myvar0, inplace=True)
   myvar = f"{myvar0}_trans"
 ```
 
@@ -107,10 +108,15 @@ else:
 
 Una opcion es la normalizacion/estandarizacion de la variable a una con media de 0 y desviación estándar de 1.
 
-```{python normal-score}
+```{python}
 if transformar:
-  var_z, tv, tns = geostats.nscore(datos, myvar0)
-  df_z = pd.DataFrame({'var_z': var_z, 'tv': tv, 'tns': tns}).sort_values('tv')
+  tns, tv = stats.probplot(datos[myvar0], fit=False)
+  var_z = tns
+```
+
+```{python}
+# if transformar:
+#   var_z, tv, tns = geostats.nscore(datos, myvar0)
 ```
 
 ```{python quantile-transform}
@@ -119,7 +125,6 @@ if transformar:
   nq = len(data) if len(data) < 500 else 500
   nst_trans = QuantileTransformer(n_quantiles=nq, output_distribution='normal').fit(data)
   # var_z = nst_trans.transform(data)
-  # datos[myvar] = var_z
 ```
 
 Otra opcion es la transformacion de Box-Cox donde se debe hallar el parametro $\lambda$ para transformar la variable lo mas cercano a una variable normalmente distribuida. La transformacion logaritmica (natural, base $e$) es un caso especial donde $\lambda=0$.
@@ -145,8 +150,6 @@ La siguiente tabla muestra los valores mas tipicos de $\lambda$ con su respectiv
 |     2     |     $x^2$      |
 
 ```{python}
-#| label: box-cox-transform
-
 if transformar:
 
   if (datos[myvar0] <= 0).any():
@@ -158,11 +161,10 @@ if transformar:
 
   fig, ax = plt.subplots()
   bc_normal = stats.boxcox_normplot(datos[myvar0].values, -5, 5, plot=ax)
-  ax.plot([bc_lambda,bc_lambda], [bc_normal[1].min(), bc_normal[1].max()], 'r--')
+  ax.axvline(x=bc_lambda, color='r', linestyle='--')
   plt.show()
   # var_bc = stats.boxcox(datos[myvar0].values, lmbda=bc_lambda)
   var_bc = bc_norm.normalize(datos[myvar0].values)
-  # datos[myvar] = var_trans
   msg = f"El lambda para {myvar0} es {bc_lambda:.3f}"
   print(msg)
 ```
@@ -175,6 +177,7 @@ La funcion `gs.normalizer.BoxCox` de `gstools` permite realizar la transformacio
 if transformar:
   transformacion = "Quantile"  # "Box-Cox" o "Quantile"
   datos[myvar] = var_bc if transformacion == "Box-Cox" else var_z
+  datos.sort_index(inplace=True)
 ```
 
 ```{python}
@@ -443,9 +446,10 @@ a = 15
   
 gau_model = gs.Gaussian(dim=2, var=C1, len_scale=a, nugget=C0, rescale=np.sqrt(3))
 exp_model = gs.Exponential(dim=2, var=C1, len_scale=a, nugget=C0, rescale=3)
-stb_model = gs.Stable(dim=2, var=C1, len_scale=a, nugget=C0, alpha=1.5, rescale=3)
+stb_model = gs.Stable(dim=2, var=C1, len_scale=a, nugget=C0, alpha=1.5, rescale=3)  # 0 < alpha < 2
 sph_model = gs.Spherical(dim=2, var=C1, len_scale=a, nugget=C0)
 circ_model = gs.Circular(dim=2, var=C1, len_scale=a, nugget=C0)
+mat_model = gs.Matern(dim=2, var=C1, len_scale=a, nugget=C0, nu=0.5, rescale=3) # 0.2 < nu < 30
 
 fig, ax = plt.subplots(figsize=(6, 4))
 
@@ -454,8 +458,10 @@ exp_model.plot(ax=ax, label = 'Exponencial')
 sph_model.plot(ax=ax, label = 'Esférico')
 circ_model.plot(ax=ax, label = 'Circular')
 stb_model.plot(ax=ax, label = 'Estable')
+mat_model.plot(ax=ax, label = 'Matern')
 
-ax.plot([a, a], [0, C1], color='black', linestyle='--')
+# ax.plot([a, a], [0, C1], color='black', linestyle='--')
+ax.axvline(x=a, color='black', linestyle='--')
 ax.set_xlim(0, 25)
 ax.legend()
 ax.set_xlabel('Distancia')
@@ -718,6 +724,22 @@ else:
   std_var = np.sqrt(var_var)
 ```
 
+## DataFrame de resultados y su descripcion
+
+```{python}
+res_dict = {
+    'pred': pred_var.ravel(),
+    'var': var_var.ravel(),
+    'std': std_var.ravel()
+}
+res_df = pd.DataFrame(res_dict)
+res_df
+```
+
+```{python}
+res_df.describe()
+```
+
 ## Mapas de prediccion y desviacion estandar
 
 ### Matplotlib
@@ -762,7 +784,6 @@ new_transform = rasterio.transform.from_origin(
 new_transform
 ```
 
-
 ```{python}
 fig, ax = plt.subplots(figsize=(6, 5))
 
@@ -781,7 +802,42 @@ ax.set_ylabel(y_map)
 plt.show()
 ```
 
-### Objetos xarray
+#### Exportar rasterio
+
+```{python}
+ras = pred_var
+tipo = 'pred'
+archivo = 'figs/krige_' + tipo + '.tif'
+
+with rasterio.open(
+    archivo, 
+    'w', 
+    driver='GTiff',
+    height=ras.T.shape[0],
+    width=ras.T.shape[1],
+    count=1,
+    dtype=ras.dtype,
+    crs=datos_sf.crs,
+    transform=new_transform
+) as dst:
+    dst.write(np.flipud(ras.T), 1)
+
+print(f"Raster guardado en: {archivo}")
+```
+
+#### Revisar
+
+```{python}
+src = rasterio.open(archivo)
+
+fig, ax = plt.subplots(figsize=(6, 5))
+
+rasterio.plot.show(src, ax=ax, cmap='viridis')
+mappable = ax.get_images()[0] 
+fig.colorbar(mappable, ax=ax, orientation='vertical')
+```
+
+### xarray
 
 #### DataArray
 
@@ -805,7 +861,7 @@ da = xr.DataArray(
 )
 print(da) # DataArray
 
-# da.rio.write_crs(datos_sf.crs, inplace=True) # asignar CRS si se conoce ej "EPSG:4326"
+# da.rio.write_crs(datos_sf.crs, inplace=True) # asignar CRS si se conoce ej "EPSG:5367"
 
 # da.rio.to_raster(archivo_xr) # exportar GeoTif
 ```
@@ -847,56 +903,29 @@ ds = xr.Dataset(
 print(ds)  # Dataset
 ```
 
-
-## DataFrame de resultados y su descripcion
-
-```{python}
-res_dict = {
-    'pred': pred_var.ravel(),
-    'var': var_var.ravel(),
-    'std': std_var.ravel()
-}
-res_df = pd.DataFrame(res_dict)
-res_df
-```
+## plotly 3D
 
 ```{python}
-res_df.describe()
+import plotly.graph_objects as go
+
+# Crear figura de superficie 3D
+fig = go.Figure(data=[go.Surface(z=pred_var.T, x=grid_x, y=grid_y, colorscale="Viridis")])
+
+# Agregar etiquetas y título
+fig.update_layout(
+    title="Mapa 3D de Predicción",
+    scene=dict(xaxis_title=x_map, 
+               yaxis_title=y_map, 
+               zaxis_title=myvar0, 
+               aspectmode = 'manual', 
+               aspectratio = dict(x = 1, y = 1, z = .5)),
+    autosize=True,
+    # width=800,
+    # height=800,
+    # margin=dict(l=65, r=50, b=65, t=90),
+)
+
+fig.show()
 ```
 
-# GeoTifs 
 
-## Exportar rasterio
-
-```{python}
-ras = pred_var
-tipo = 'pred'
-archivo = 'figs/krige_' + tipo + '.tif'
-
-with rasterio.open(
-    archivo, 
-    'w', 
-    driver='GTiff',
-    height=ras.T.shape[0],
-    width=ras.T.shape[1],
-    count=1,
-    dtype=ras.dtype,
-    crs=datos_sf.crs,
-    transform=new_transform
-) as dst:
-    dst.write(np.flipud(ras.T), 1)
-
-print(f"Raster guardado en: {archivo}")
-```
-
-## Revisar
-
-```{python}
-src = rasterio.open(archivo)
-
-fig, ax = plt.subplots(figsize=(6, 5))
-
-rasterio.plot.show(src, ax=ax, cmap='viridis')
-mappable = ax.get_images()[0] 
-fig.colorbar(mappable, ax=ax, orientation='vertical')
-```
