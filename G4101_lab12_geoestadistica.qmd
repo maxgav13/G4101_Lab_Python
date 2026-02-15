@@ -32,7 +32,6 @@ execute:
 
 import numpy as np
 import pandas as pd
-from extras.gstools-trend import df_fit
 
 import geopandas as gpd
 # import shapely
@@ -308,14 +307,15 @@ dat_vgm = pd.DataFrame({'lag': bin_center, 'gamma': gamma, 'npair': npair})
 ```
 
 ```{python variog-omni-plot}
-(p9.ggplot(dat_vgm, p9.aes(x = 'lag', y = 'gamma')) + 
+variog_omni = (p9.ggplot(dat_vgm, p9.aes(x = 'lag', y = 'gamma')) + 
   # p9.geom_point(p9.aes(size = 'npair')) +
-  p9.geom_point(size = 3) + 
+  p9.geom_point(size = 3, color='blue') + 
   p9.labs(x = x_var, y = y_var) +
   p9.geom_hline(yintercept = S, color = 'red', linetype = 'dashed') +
   # p9.geom_text(p9.aes(label = 'npair'), nudge_y = 0.03, size = 8) +
   p9.ylim(0, max(dat_vgm['gamma'])*1.05) +
   p9.xlim(0, max(dat_vgm['lag'])))
+variog_omni
 ```
 
 ## Mapa de la superficie del variograma
@@ -490,6 +490,9 @@ print(f"R^2: {r2:.4f}")
 lags_fit = np.linspace(0, bin_center.max(), 100)
 gamma_fit = fit_model.variogram(lags_fit)
 df_fit = pd.DataFrame({'lag': lags_fit, 'gamma': gamma_fit})
+
+# (variog_omni + 
+#   p9.geom_line(p9.aes(x='lag', y='gamma'), data=df_fit, color='black', size=1.25, linetype='dashed', inherit_aes=False))
 
 (variog_dir + 
   p9.geom_line(p9.aes(x='lag', y='gamma'), data=df_fit, color='black', size=1.25, linetype='dashed', inherit_aes=False))
