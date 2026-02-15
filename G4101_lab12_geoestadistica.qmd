@@ -477,7 +477,9 @@ plt.show()
 
 Se escoge el modelo a ajustar de los disponibles de `gs.*`. Se puede utilizar el método `fit_variogram` para ajustar el modelo a los datos, donde se puede activar o desactivar que se ajuste o no el nugget.
 
-```{python ajuste}
+```{python}
+#| label: ajuste-modelo
+
 fit_model = gs.Spherical(dim=2)
 para, pcov, r2 = fit_model.fit_variogram(bin_center, gamma, nugget=True, return_r2=True)
 print(fit_model)
@@ -494,6 +496,8 @@ df_fit = pd.DataFrame({'lag': lags_fit, 'gamma': gamma_fit})
 ```
 
 ```{python}
+#| label: grafico-ajuste
+
 fig, ax = plt.subplots(figsize=(6, 4))
 ax.scatter(bin_center, gamma, label='Datos')
 fit_model.plot(x_max=bin_center.max(), ax=ax, label='Modelo Ajustado')
@@ -508,6 +512,7 @@ Una vez escogido el modelo y ajustado a los datos se realiza la validacion cruza
 A continuacion se presentan tres funciones para realizar la validacion cruzada: Leave-One-Out Cross-Validation (LOOCV), k-fold Cross-Validation (k-fold CV) y Spatial Cross-Validation (SCV). Para cuando se tienen pocos datos se recomienda usar LOOCV, mientras que para conjuntos de datos mas grandes se puede usar k-fold CV con k=5 o k=10.
 
 ```{python}
+#| label: loocv
 """
 LOOCV con gstools (Kriging).
 Asume:
@@ -553,6 +558,7 @@ def loocv_gstools(fit_model, coords, values, normalizer=None):
     rmse = root_mean_squared_error(values, preds)
     mape = mean_absolute_percentage_error(values, preds)
     mae = mean_absolute_error(values, preds)
+    r = stats.pearsonr(values,preds)[0]
     r2 = r2_score(values, preds)
     msdr = np.mean(residuals**2 / pred_vars)
     bias = residuals.mean()
@@ -568,6 +574,7 @@ def loocv_gstools(fit_model, coords, values, normalizer=None):
         "rmse": rmse,
         "mae": mae,
         # "mape": mape,
+        "r": r,
         "r2": r2,
         "msdr": msdr,
         "bias": bias
@@ -583,6 +590,7 @@ def loocv_gstools(fit_model, coords, values, normalizer=None):
 ```
 
 ```{python}
+#| label: kfold
 """
 k-fold CV con gstools (Kriging).
  - fit_model: modelo de covarianza de gstools ajustado (p. ej., gs.Spherical(...))
@@ -610,6 +618,9 @@ def kfold_gstools(fit_model, coords, values, k=5, normalizer=None, shuffle=True,
     kf = KFold(n_splits=k, shuffle=shuffle, random_state=random_state)
     splits = list(kf.split(coords))
     for fold, (train_idx, test_idx) in enumerate(splits):
+
+        print(f"fold {fold}: train {train_idx.size}, test {test_idx.size}")
+
         cond_pos = (xs[train_idx], ys[train_idx])
         cond_val = values[train_idx]
 
@@ -619,6 +630,7 @@ def kfold_gstools(fit_model, coords, values, k=5, normalizer=None, shuffle=True,
             cond_val=cond_val,
             normalizer=normalizer,
             fit_normalizer=False,
+            fit_variogram=False,
             unbiased=False if transformar and transformacion == "Quantile" else True,
             mean = 0 if transformar and transformacion == "Quantile" else None
         )
@@ -636,6 +648,7 @@ def kfold_gstools(fit_model, coords, values, k=5, normalizer=None, shuffle=True,
     rmse = np.sqrt(mean_squared_error(values, preds))
     mae = mean_absolute_error(values, preds)
     mape = mean_absolute_percentage_error(values, preds)
+    r = stats.pearsonr(values,preds)[0]
     r2 = r2_score(values, preds)
 
     valid = pred_vars > 0
@@ -654,6 +667,7 @@ def kfold_gstools(fit_model, coords, values, k=5, normalizer=None, shuffle=True,
         "rmse": rmse,
         "mae": mae,
         # "mape": mape,
+        "r": r,
         "r2": r2,
         "msdr": msdr,
         "bias": bias
@@ -670,6 +684,7 @@ def kfold_gstools(fit_model, coords, values, k=5, normalizer=None, shuffle=True,
 ```
 
 ```{python}
+#| label: spatial-kfold
 """
 Validación cruzada espacial k-fold para kriging usando gstools.
 
@@ -743,7 +758,12 @@ def spatial_kfold_gstools(
     #     cond_pos = (xs[train_idx], ys[train_idx])
     #     cond_val = values[train_idx]
 
-    for fold_idx, (train_idx, test_idx) in enumerate(gkf.split(X=coords, y=values, groups=groups)):
+
+    splits = list(gkf.split(X=coords, y=values, groups=groups))
+    for fold_idx, (train_idx, test_idx) in enumerate(splits):
+
+        print(f"fold {fold_idx}: train {train_idx.size}, test {test_idx.size}")
+        
         cond_pos = (xs[train_idx], ys[train_idx])
         cond_val = values[train_idx]
 
@@ -754,7 +774,7 @@ def spatial_kfold_gstools(
             normalizer=normalizer,
             fit_normalizer=False,
             unbiased=False if transformar and transformacion == "Quantile" else True,
-            mean = 0 if transformar and transformacion == "Quantile" else None
+            mean=0 if transformar and transformacion == "Quantile" else None
         )
 
         # batch predict test points
@@ -778,6 +798,7 @@ def spatial_kfold_gstools(
     metrics = {
         "rmse": np.sqrt(mean_squared_error(values[valid_mask], preds[valid_mask])),
         "mae": mean_absolute_error(values[valid_mask], preds[valid_mask]),
+        "r": stats.pearsonr(field,results['preds'])[0],
         "r2": r2_score(values[valid_mask], preds[valid_mask]),
         # MSDR: mean(square(residual)/pred_var) computed only where pred_var > 0
         "msdr": None,
@@ -802,8 +823,9 @@ def spatial_kfold_gstools(
 
 ```{python xval-loocv}
 #| eval: false
+#| label: loocv-results
 
-results = loocv_gstools(
+results_loo = loocv_gstools(
   fit_model, 
   coords, 
   field, 
@@ -812,7 +834,9 @@ results = loocv_gstools(
 ```
 
 ```{python xval-kfold}
-results = kfold_gstools(
+#| label: kfold-results
+
+results_kfold = kfold_gstools(
   fit_model, 
   coords, 
   field, 
@@ -823,18 +847,26 @@ results = kfold_gstools(
 ```
 
 ```{python}
-results = spatial_kfold_gstools(
+#| label: spatial-kfold-results
+
+results_spatialk = spatial_kfold_gstools(
   fit_model, 
   coords, 
   field, 
   k=5, 
-  method="kmeans", 
-  random_state=0, 
-  normalizer=bc_norm if transformar and transformacion=="Box-Cox" else None
+  method="kmeans",  
+  normalizer=bc_norm if transformar and transformacion=="Box-Cox" else None,
+  random_state=0
   )
 ```
 
 ```{python}
+results = results_kfold  # results_loo, results_kfold, o results_spatialk
+```
+
+```{python}
+#| label: xval-plot-map
+
 datos_sf['fold'] = results['groups']
 datos_sf['fold'] = datos_sf['fold'].astype('category')
 
@@ -850,19 +882,27 @@ ax.set_ylabel(y_map)
 plt.show()
 ```
 
-```{python xval-metrics}
+```{python}
+#| label: xval-metrics
+
 print(f"RMSE: {results['metrics']['rmse']:<.4f}")
 print(f"MAE: {results['metrics']['mae']:<.4f}")
 print(f"MSDR: {results['metrics']['msdr']:<.4f}")
+print(f"r: {results['metrics']['r']:<.4f}")
 print(f"R^2: {results['metrics']['r2']:<.4f}")
 print(f"Bias: {results['metrics']['bias']:<.4f}")
 ```
 
-```{python xval-df}
+```{python}
+#| label: xval-df
+
 kcv_df = results['kcv_df']
+kcv_df
 ```
 
-```{python xval-plot-1}
+```{python}
+#| label: xval-plot-1
+
 (p9.ggplot(kcv_df, p9.aes('pred', 'observed')) + 
   p9.geom_point(color = "blue", size = 1.25) + 
   # p9.coord_fixed() + 
@@ -872,7 +912,9 @@ kcv_df = results['kcv_df']
           subtitle = 'Rojo: linea 1:1, Verde: regresion'))
 ```
 
-```{python xval-plot-2}
+```{python}
+#| label: xval-plot-2
+
 (p9.ggplot(kcv_df, p9.aes('residual')) + 
   p9.geom_histogram(bins = 15, color = 'black', fill = "blue") + 
   p9.labs(x = "Residuales", y = "Fecuencia") + 
