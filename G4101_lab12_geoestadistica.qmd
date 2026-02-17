@@ -515,336 +515,34 @@ Una vez escogido el modelo y ajustado a los datos se realiza la validacion cruza
 A continuacion se presentan tres funciones para realizar la validacion cruzada: Leave-One-Out Cross-Validation (LOOCV), k-fold Cross-Validation (k-fold CV) y Spatial Cross-Validation (SCV). Para cuando se tienen pocos datos se recomienda usar LOOCV, mientras que para conjuntos de datos mas grandes se puede usar k-fold CV con k=5 o k=10.
 
 ```{python}
-#| label: loocv
-"""
-LOOCV con gstools (Kriging).
-Asume:
- - fit_model: modelo de covarianza de gstools ajustado (p. ej., gs.Spherical(...))
- - coords: array-like con forma (n, 2) de las coordenadas de las observaciones
- - values: array-like con forma (n,) de los valores observados
- - devuelve: diccionario con preds, pred_vars, residuals, kcv_df y métricas (RMSE, MAPE, MAE, R2, MSDR, bias)
-"""
-
-from sklearn.metrics import root_mean_squared_error, mean_absolute_error, mean_absolute_percentage_error, r2_score
-
-def loocv_gstools(fit_model, coords, values, normalizer=None):
-    n = len(values)
-    preds = np.empty(n, dtype=float)
-    pred_vars = np.empty(n, dtype=float)
-
-    xs = coords[:, 0]
-    ys = coords[:, 1]
-
-    for i in range(n):
-        mask = np.arange(n) != i
-        cond_pos = (xs[mask], ys[mask])
-        cond_val = values[mask]
-
-        kr = gs.krige.Krige(
-            fit_model,
-            cond_pos=cond_pos,
-            cond_val=cond_val,
-            normalizer=normalizer,
-            fit_normalizer=False,
-            unbiased=False if transformar and transformacion == "Quantile" else True,
-            mean = 0 if transformar and transformacion == "Quantile" else None
-        )
-
-        # Try calling kr() to predict a point; if your gstools version uses another API,
-        # replace next line with the appropriate call (e.g. kr.execute('points', [xs[i]],[ys[i]]))
-        pred, var = kr((xs[i], ys[i]))  # pred, var may be scalars or 1‑element arrays
-
-        preds[i] = float(np.asarray(pred).ravel()[0])
-        pred_vars[i] = float(np.asarray(var).ravel()[0])
-
-    residuals = values - preds
-    rmse = root_mean_squared_error(values, preds)
-    mape = mean_absolute_percentage_error(values, preds)
-    mae = mean_absolute_error(values, preds)
-    r = stats.pearsonr(values,preds)[0]
-    r2 = r2_score(values, preds)
-    msdr = np.mean(residuals**2 / pred_vars)
-    bias = residuals.mean()
-    
-    kcv_df = pd.DataFrame({
-        "observed": values,
-        "pred": preds,
-        "pred_var": pred_vars,
-        "residual": residuals
-    })
-
-    metrics = {
-        "rmse": rmse,
-        "mae": mae,
-        # "mape": mape,
-        "r": r,
-        "r2": r2,
-        "msdr": msdr,
-        "bias": bias
-    }
-
-    return {
-        "preds": preds,
-        "pred_vars": pred_vars,
-        "residuals": residuals,
-        "kcv_df": kcv_df,
-        "metrics": metrics
-    }
-```
-
-```{python}
-#| label: kfold
-"""
-k-fold CV con gstools (Kriging).
- - fit_model: modelo de covarianza de gstools ajustado (p. ej., gs.Spherical(...))
- - coords: array-like con forma (n, 2) de las coordenadas de las observaciones
- - values: array-like con forma (n,) de los valores observados
- - devuelve: diccionario con preds, pred_vars, residuals, kcv_df y métricas (RMSE, MAPE, MAE, R2, MSDR, bias)
-"""
-    
-from sklearn.model_selection import KFold
-from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error, r2_score
-
-def kfold_gstools(fit_model, coords, values, k=5, normalizer=None, shuffle=True, random_state=None):
-
-    coords = np.asarray(coords)
-    values = np.asarray(values, dtype=float)
-    n = len(values)
-
-    preds = np.full(n, np.nan)
-    pred_vars = np.full(n, np.nan)
-    groups = np.full(n, np.nan)
-
-    xs = coords[:, 0]
-    ys = coords[:, 1]
-
-    kf = KFold(n_splits=k, shuffle=shuffle, random_state=random_state)
-    splits = list(kf.split(coords))
-    for fold, (train_idx, test_idx) in enumerate(splits):
-
-        print(f"fold {fold}: train {train_idx.size}, test {test_idx.size}")
-
-        cond_pos = (xs[train_idx], ys[train_idx])
-        cond_val = values[train_idx]
-
-        kr = gs.krige.Krige(
-            fit_model,
-            cond_pos=cond_pos,
-            cond_val=cond_val,
-            normalizer=normalizer,
-            fit_normalizer=False,
-            fit_variogram=False,
-            unbiased=False if transformar and transformacion == "Quantile" else True,
-            mean = 0 if transformar and transformacion == "Quantile" else None
-        )
-
-        pred, var = kr((xs[test_idx], ys[test_idx]))  # batch predict
-        pred = np.asarray(pred).ravel()
-        var = np.asarray(var).ravel()
-
-        groups[test_idx] = fold
-        preds[test_idx] = pred
-        pred_vars[test_idx] = var
-
-    residuals = values - preds
-
-    rmse = np.sqrt(mean_squared_error(values, preds))
-    mae = mean_absolute_error(values, preds)
-    mape = mean_absolute_percentage_error(values, preds)
-    r = stats.pearsonr(values,preds)[0]
-    r2 = r2_score(values, preds)
-
-    valid = pred_vars > 0
-    msdr = np.nan if valid.sum() == 0 else np.mean(residuals[valid]**2 / pred_vars[valid])
-
-    bias = np.nanmean(residuals)
-
-    kcv_df = pd.DataFrame({
-        "observed": values,
-        "pred": preds,
-        "pred_var": pred_vars,
-        "residual": residuals
-    })
-
-    metrics = {
-        "rmse": rmse,
-        "mae": mae,
-        # "mape": mape,
-        "r": r,
-        "r2": r2,
-        "msdr": msdr,
-        "bias": bias
-    }
-
-    return {
-        "preds": preds,
-        "pred_vars": pred_vars,
-        "residuals": residuals,
-        'groups': groups.astype('int32'),
-        "kcv_df": kcv_df,
-        "metrics": metrics
-    }
-```
-
-```{python}
-#| label: spatial-kfold
-"""
-Validación cruzada espacial k-fold para kriging usando gstools.
-
-- Métodos para generar los grupos espaciales:
-    * "kmeans": agrupa las coordenadas en k grupos espaciales (por defecto)
-    * "block": bloques de una rejilla regular — especificar block_size
-- Usa GroupKFold para mantener grupos espaciales completos fuera de cada grupo.
-- Devuelve predicciones por punto, varianzas predictivas y métricas comunes.
-
-Entradas:
- - fit_model: instancia de modelo de covarianza de gstools (ya configurada, no necesariamente ajustada)
- - coords: array-like con forma (n,2) de x,y
- - values: array-like con forma (n,) de observaciones
- - n_splits: número de grupos espaciales
- - method: "kmeans" o "block"
- - block_size: tamaño de celda (requerido para method="block")
- - normalizer: objeto normalizador de gstools o None
- - random_state: semilla para reproducibilidad
-
-La función retorna un diccionario con preds, pred_vars, residuals, metrics y etiquetas de grupo.
-"""
-
-from sklearn.cluster import KMeans
-from sklearn.model_selection import GroupKFold
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-
-def make_spatial_groups(coords, k=5, method="kmeans", block_size=None, random_state=None):
-    coords = np.asarray(coords)
-    if method == "kmeans":
-        km = KMeans(n_clusters=k, random_state=random_state)
-        labels = km.fit_predict(coords)
-        return labels
-    elif method == "block":
-        if block_size is None:
-            raise ValueError("block_size must be provided for method='block'")
-        mins = coords.min(axis=0)
-        bins = np.floor((coords - mins) / block_size).astype(int)
-        # encode 2D bins into single integer label
-        labels, _ = np.unique(bins[:,0] * (bins[:,1].max()+1) + bins[:,1], return_inverse=True)
-        # return inverse mapping (one label per point)
-        return np.floor((coords - mins) / block_size).astype(int)[:,0] * (bins[:,1].max()+1) + np.floor((coords - mins) / block_size).astype(int)[:,1]
-    else:
-        raise ValueError("Unknown method. Use 'kmeans' or 'block'.")
-
-
-def spatial_kfold_gstools(
-    fit_model,
-    coords,
-    values,
-    k=5,
-    method="kmeans",
-    block_size=None,
-    normalizer=None,
-    random_state=None
-):
-    coords = np.asarray(coords)
-    values = np.asarray(values, dtype=float)
-    n = len(values)
-    xs, ys = coords[:,0], coords[:,1]
-
-    groups = make_spatial_groups(coords, k=k, method=method, block_size=block_size, random_state=random_state)
-
-    gkf = GroupKFold(n_splits=k)
-
-    preds = np.full(n, np.nan)
-    pred_vars = np.full(n, np.nan)
-
-    # for i in range(k):
-    #     train_idx = np.where(groups != i)[0]
-    #     test_idx = np.where(groups == i)[0]
-    #     cond_pos = (xs[train_idx], ys[train_idx])
-    #     cond_val = values[train_idx]
-
-
-    splits = list(gkf.split(X=coords, y=values, groups=groups))
-    for fold_idx, (train_idx, test_idx) in enumerate(splits):
-
-        print(f"fold {fold_idx}: train {train_idx.size}, test {test_idx.size}")
-        
-        cond_pos = (xs[train_idx], ys[train_idx])
-        cond_val = values[train_idx]
-
-        kr = gs.krige.Krige(
-            fit_model,
-            cond_pos=cond_pos,
-            cond_val=cond_val,
-            normalizer=normalizer,
-            fit_normalizer=False,
-            unbiased=False if transformar and transformacion == "Quantile" else True,
-            mean=0 if transformar and transformacion == "Quantile" else None
-        )
-
-        # batch predict test points
-        pred, var = kr((xs[test_idx], ys[test_idx]))
-        pred = np.asarray(pred).ravel()
-        var = np.asarray(var).ravel()
-
-        preds[test_idx] = pred
-        pred_vars[test_idx] = var
-
-    residuals = values - preds
-
-    kcv_df = pd.DataFrame({
-        "observed": values,
-        "pred": preds,
-        "pred_var": pred_vars,
-        "residual": residuals
-    })
-
-    valid_mask = ~np.isnan(preds)
-    metrics = {
-        "rmse": np.sqrt(mean_squared_error(values[valid_mask], preds[valid_mask])),
-        "mae": mean_absolute_error(values[valid_mask], preds[valid_mask]),
-        "r": stats.pearsonr(field,results['preds'])[0],
-        "r2": r2_score(values[valid_mask], preds[valid_mask]),
-        # MSDR: mean(square(residual)/pred_var) computed only where pred_var > 0
-        "msdr": None,
-        "bias": np.nanmean(residuals[valid_mask])
-    }
-
-    pv_mask = (pred_vars > 0) & valid_mask
-    if pv_mask.sum() > 0:
-        metrics["msdr"] = np.mean((residuals[pv_mask]**2) / pred_vars[pv_mask])
-    else:
-        metrics["msdr"] = np.nan
-
-    return {
-        "preds": preds,
-        "pred_vars": pred_vars,
-        "residuals": residuals,
-        "groups": groups,
-        "kcv_df": kcv_df,
-        "metrics": metrics
-    }
+import fns.cv_gs
 ```
 
 ```{python xval-loocv}
 #| eval: false
 #| label: loocv-results
 
-results_loo = loocv_gstools(
+results_loo = cv_gs.gs_loocv(
   fit_model, 
   coords, 
   field, 
-  normalizer=bc_norm if transformar and transformacion=="Box-Cox" else None
+  normalizer=bc_norm if transformar and transformacion=="Box-Cox" else None,
+  transformar=transformar,
+  transformacion=transformacion if transformar else None
   )
 ```
 
 ```{python xval-kfold}
 #| label: kfold-results
 
-results_kfold = kfold_gstools(
+results_kfold = cv_gs.gs_kfold(
   fit_model, 
   coords, 
   field, 
   k=5,
   normalizer=bc_norm if transformar and transformacion=="Box-Cox" else None,
+  transformar=transformar,
+  transformacion=transformacion if transformar else None,
   random_state=0
   )
 ```
@@ -852,13 +550,15 @@ results_kfold = kfold_gstools(
 ```{python}
 #| label: spatial-kfold-results
 
-results_spatialk = spatial_kfold_gstools(
+results_spatialk = cv_gs.gs_spatial_kfold(
   fit_model, 
   coords, 
   field, 
   k=5, 
   method="kmeans",  
   normalizer=bc_norm if transformar and transformacion=="Box-Cox" else None,
+  transformar=transformar,
+  transformacion=transformacion if transformar else None,
   random_state=0
   )
 ```
@@ -870,7 +570,7 @@ results = results_kfold  # results_loo, results_kfold, o results_spatialk
 ```{python}
 #| label: xval-plot-map
 
-datos_sf['fold'] = results['groups']
+datos_sf['fold'] = results['kcv_df']['fold']
 datos_sf['fold'] = datos_sf['fold'].astype('category')
 
 ax = outline_sf.plot(facecolor='none', edgecolor='cyan', linewidth=1.25)

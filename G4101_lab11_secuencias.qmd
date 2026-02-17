@@ -120,46 +120,7 @@ print(pd.Series(data).value_counts())
 Funcion para calcular el test de corridas arriba-abajo.
 
 ```{python}
-def up_down_runs_test(data):
-    # 1. Convertir los datos a una secuencia de '+' y '-' según el movimiento ascendente/descendente
-    runs_sequence = []
-    for i in range(1, len(data)):
-        if data[i] > data[i-1]:
-            runs_sequence.append('+')
-        elif data[i] < data[i-1]:
-            runs_sequence.append('-')
-        # Ignorar empates (valores iguales)
-        
-    # 2. Contar el número de corridas (cambios de signo)
-    num_runs = 1  # Comenzar con al menos una corrida
-    for i in range(1, len(runs_sequence)):
-        if runs_sequence[i] != runs_sequence[i-1]:
-            num_runs += 1
-            
-    n = len(runs_sequence) # Número total de elementos sin empate
-    n1 = runs_sequence.count("+")
-    n2 = runs_sequence.count("-")
-
-    # 3. Calcular el número esperado de corridas y la desviación estándar para muestras grandes
-    # Fórmulas específicas para la prueba de corridas arriba/abajo:
-    expected_runs = ((2 * n1 * n2) / (n1 + n2)) + 1
-    std_dev_runs = np.sqrt((2 * n1 * n2 * (2 * n1 * n2 - n1 - n2)) / ((n1 + n2)**2 * (n1 + n2 - 1)))
-
-    # 4. Calcular el estadístico Z
-    z_statistic = (num_runs - expected_runs) / std_dev_runs
-
-    # 5. Calcular el valor-p (prueba bilateral)
-    p_value = 2 * (1 - stats.norm.cdf(abs(z_statistic)))
-
-    return {
-    "z_statistic": z_statistic,
-    "p_value": p_value,
-    "n": n,
-    "num_runs": num_runs,
-    "expected_runs": expected_runs,
-    "n1": n1,
-    "n2": n2
-}
+from fns.gmisc import up_down_runs_test
 ```
 
 ```{python}
