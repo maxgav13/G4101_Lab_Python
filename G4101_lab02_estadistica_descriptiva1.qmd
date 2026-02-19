@@ -202,7 +202,7 @@ plt.show()
 ```{python}
 fig, ax = plt.subplots()
 sns.boxplot(data = penguins, x = "species", y = "bill_length_mm", 
-            palette = "Set2")
+            hue= "species", palette = "Set2", legend=False)
 plt.xlabel("Especie")
 plt.ylabel("Largo del pico (mm)")
 plt.title("Boxplot de largo del pico por especie")

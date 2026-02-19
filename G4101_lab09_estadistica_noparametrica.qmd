@@ -225,7 +225,7 @@ $$
 $$
 
 ```{python}
-(7.65) / ((12^2 - 1)/(12 + 1))
+(7.65) / ((12**2 - 1)/(12 + 1))
 ```
 
 
@@ -304,9 +304,9 @@ from fns.gmisc import stratified_bootstrap
 ```{python}
 def eta(df):
   res = pg.kruskal(df, dv='MgO', between='Location')
-  H = res['H'][0]
+  H = res['H'].iloc[0]
   N = len(df)
-  k = res['ddof1'][0]
+  k = res['ddof1'].iloc[0]
   eta = (H - k + 1) / (N - k)
   return eta
 ```

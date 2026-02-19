@@ -299,8 +299,7 @@ print(dias_pl.value_counts())
 Si se quiere acceder a los elementos de una serie se usan corchetes cuadrados `[]`, similar a los arreglos de **numpy**, esto para **polars**. Para **pandas** de manera más correcta si se quiere acceder por medio de la posicion se usa `.iloc[]` y si se quiere acceder por medio de los indices o pruebas logicas se usa `.loc`. Si se desea obtener unicamente los valores de la serie se usa `.values`.
 
 ```{python}
-print(s2[4])        # tercer elemento
-print(s2.iloc[10])   # tercer elemento
+print(s2.iloc[4])   # quinto elemento
 print(s2['c'])      # elemento con indice 'c'
 print(s2.loc['c'])  # elemento con indice 'c'
 print(s2[2:5])      # elementos del 3 al 5, el 6 no se incluye
@@ -311,9 +310,9 @@ print(s2.values)    # obtener valores
 ```
 
 ```{python}
-print(s4[4])        # tercer elemento
+print(s4[4])        # quinto elemento
 print(s4[2:5])      # elementos del 3 al 5, el 6 no se incluye
-print(ss4.filter(s4 > 8))  # elementos mayores a 8
+print(s4.filter(s4 > 8))  # elementos mayores a 8
 print(s4.to_numpy())  # obtener valores
 ```
 
@@ -372,7 +371,6 @@ Similar a las Series, DataFrames tienen metodos para obtener estadisticas descri
 ```{python}
 print(DF.describe())
 print(df.describe())
-print(df.glimpse())
 ```
 
 ## Verificando objetos
@@ -724,7 +722,7 @@ plt.show()
 ```{python}
 fig, ax = plt.subplots()
 sns.boxplot(data = airquality, x = "Month", y = "Temp", 
-            palette = "Set2")
+            hue = "Month", palette = "Set2", legend=False)
 plt.xlabel("Mes")
 plt.ylabel("Temperatura")
 plt.title("Boxplot de Temperatura por Mes")
