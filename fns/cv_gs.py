@@ -163,7 +163,7 @@ def gs_kfold(
 
     kf = KFold(n_splits=k, shuffle=shuffle, random_state=random_state)
     splits = list(kf.split(coords))
-    for fold, (train_idx, test_idx) in enumerate(splits):
+    for fold, (train_idx, test_idx) in enumerate(splits, start=1):
 
         print(f"fold {fold}: train {train_idx.size}, test {test_idx.size}")
 
@@ -342,7 +342,7 @@ def gs_spatial_kfold(
 
 
     splits = list(gkf.split(X=coords, y=values, groups=groups))
-    for fold_idx, (train_idx, test_idx) in enumerate(splits):
+    for fold_idx, (train_idx, test_idx) in enumerate(splits, start=1):
 
         print(f"fold {fold_idx}: train {train_idx.size}, test {test_idx.size}")
         
@@ -444,8 +444,8 @@ def cross_validate_kriging(
     scores = {'rmse': [], 'r2': [], 'mae': []}
     fold_results = []
     
-    for fold, (train_idx, test_idx) in enumerate(gkf.split(coords, values, groups)):
-        print(f"\nFold {fold + 1}/{n_splits}")
+    for fold, (train_idx, test_idx) in enumerate(gkf.split(coords, values, groups), start=1):
+        print(f"\nFold {fold}/{n_splits}")
         print(f"Train groups: {np.unique(groups[train_idx])}")
         print(f"Test groups: {np.unique(groups[test_idx])}")
         

@@ -75,7 +75,7 @@ def wilcoxon_effects(
     except Exception:
         scipy_stat, scipy_p = None, None
 
-    return {
+    return pd.Series({
         "n": n,
         "W_plus": W_plus,
         "W_minus": W_minus,
@@ -88,7 +88,7 @@ def wilcoxon_effects(
         "CLES": cles,
         "scipy_wilcoxon_stat": scipy_stat,
         "scipy_wilcoxon_p": scipy_p
-    }
+    })
 
 def kruskal_effects(
     data: pd.DataFrame = None, 
@@ -143,14 +143,14 @@ def kruskal_effects(
     if not np.isnan(eta_H2) and eta_H2 < 0:
         eta_H2 = 0.0
 
-    return {
+    return pd.Series({
         "H": H,
         "p": p,
         "N": N,
         "k": k,
         "epsilon2": epsilon2,
         "eta_H2": eta_H2
-    }
+    })
 
 def stratified_bootstrap(
     df: pd.DataFrame,
