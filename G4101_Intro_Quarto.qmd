@@ -30,7 +30,9 @@ bibliography: references.bib
 Para poder usar este tipo de documentos es necesario primero instalar Quarto en su equipo. Seguir las instrucciones en el sitio web [Quarto](http://quarto.org).
 :::
 
-Este es un documento Quarto (`.qmd`). Permite trabajar con texto y ejecutar codigo de manera conjunta para generar un documento completo de su analisis. Para compilar el documento haga click en *Preview* (![](imgs/positron-render-button.png){width="64"}). @agresti2002 es una referencia clasica para datos categoricos.
+Este es un documento Quarto (`.qmd`). Permite trabajar con texto y ejecutar codigo de manera conjunta para generar un documento completo de su analisis. Para compilar el documento haga click en *Preview* (![](imgs/positron-render-button.png){width="64"}). 
+
+Permite incorporar referencias bibliograficas, como por ejemplo @agresti2002 que es una referencia clasica para datos categoricos.
 
 Los documentos se pueden crear en modo *Source* o *Visual*. En modo *Visual* (@fig-visual-opts) se puede trabajar el documento como un editor de texto clasico.
 
