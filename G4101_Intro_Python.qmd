@@ -329,8 +329,8 @@ data = {'Visitas': [10, 20, 30, 40, 50],
 DF = pd.DataFrame(data)
 df = pl.DataFrame(data)
 
-print(DF)
-print(df)
+DF
+df
 ```
 
 Similar a las Series, DataFrames tienen índices para las filas (de **pandas**) y nombres para las columnas. Si no se especifican los índices de las filas, estas se numeran automáticamente empezando en 0. Estos se pueden acceder usando `.index` para las filas y `.columns` para las columnas. Para ver las primeras filas de un DataFrame se usa el metodo `.head()`. Para tomar una muestra de un DataFrame se usa el metodo `.sample()`.
@@ -553,6 +553,7 @@ mapeo_mes = {
 airquality["Month"].map(mapeo_mes).astype("category")
 
 print(airquality.loc[(airquality["Month"].isin([5,7]))])
+# print(airquality[(airquality["Month"].isin([5,7]))])
 ```
 
 Para resumir variables se usa el metodo `.aggregate()` o `.agg()`, que se puede combinar con `.groupby()` para obtener medidas por grupos. Para crear o modificar variables se usa `.assign()` (metodo preferido) o asignandolas con el `df["*"] =`. Para ordenar los datos se usa `.sort_values()` y para deseleccionar columnas se usa `.drop()` o seleccionando las columnas que no se quieren. 
@@ -647,7 +648,7 @@ ax.scatter(x, y, label="sin(x) + ruido", color="C0", s=20, alpha=0.7)
 ax.set_title("Línea + Dispersión")
 ax.set_xlabel("x")
 ax.set_ylabel("y")
-ax.legend()
+ax.legend(loc='lower left')
 ax.grid(True)
 
 # Histograma
@@ -669,8 +670,7 @@ for i, v in enumerate(vals):
 
 # Boxplot
 ax = axes[1, 1]
-ax.boxplot(box_data, labels=[f"Grp{i}" for i in range(1, 5)], patch_artist=True,
-       boxprops=dict(facecolor="C4", color="k"))
+ax.boxplot(box_data, tick_labels=[f"Grp{i}" for i in range(1, 5)], patch_artist=True, boxprops=dict(facecolor="C4", color="k"))
 ax.set_title("Boxplot")
 ax.set_ylabel("Valor")
 
@@ -685,9 +685,9 @@ Usando **seaborn**:
 fig, ax = plt.subplots()
 sns.histplot(data = airquality, x = "Temp", bins = 20, 
              color = "blue", edgecolor = "black", kde=False)
-plt.xlabel("Temperatura")
-plt.ylabel("Frecuencia")
-plt.title("Histograma de Temperatura")
+ax.set_xlabel("Temperatura")
+ax.set_ylabel("Frecuencia")
+ax.set_title("Histograma de Temperatura")
 plt.show()
 ```
 
@@ -821,7 +821,7 @@ ggplot(data = <DATA>) +
   <THEME_FUNCTION>
 ```
 
-donde las partes principales son `ggplot` y `geom_*`, el resto no son necesarias. Dentro de `geom_*` se mapean la variables del DataFrame a los argumentos de la funcion (x, y, col, fill, size, shape).
+donde las partes principales son `ggplot` y `geom_*`, el resto no son necesarias. Dentro de `geom_*` se mapean la variables del DataFrame a los argumentos de la funcion (x, y, color, fill, size, shape).
 
 ### Histograma
 
@@ -923,6 +923,7 @@ Para datos numericos continuos
 
 ```{python}
 (p9.ggplot(airquality, p9.aes("Ozone","Temp",color="factor(Month)")) + 
+  p9.scale_color_brewer(type="qual", palette="Set1") +
   p9.geom_point())
 ```
 
