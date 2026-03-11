@@ -15,8 +15,8 @@ format:
     code-summary: "Codigo"
     code-tools: true
     html-math-method: katex
-  pdf: 
-    prefer-html: false
+  typst: 
+    prefer-html: true
   docx: default
 execute:
   warning: false
@@ -213,9 +213,9 @@ Repasando como se comportan datos logicos con funciones aritmeticas
 
 ```{python}
 v = np.arange(1,21)
-v < 6
-sum(v < 6)
-np.mean(v < 6)
+print(v < 6)
+print(sum(v < 6))
+print(np.mean(v < 6))
 ```
 
 Se muestra como relizar calculos de probabilidades usando datos simulados, recreando algunos de los ejemplos anteriormente mostrados. 
@@ -244,8 +244,8 @@ rng = np.random.default_rng(10)
 n = 10000
 
 sim = {
-  "z_mean": rng.normal(size=10).mean(),
-  "x50_mean": rng.normal(loc=50, scale=6, size=10).mean(),
+  "z_mean": rng.normal(size=n).mean(),
+  "x50_mean": rng.normal(loc=50, scale=6, size=n).mean(),
   "prob_45_62": np.mean(rng.normal(loc=50, scale=10, size=n) < 62)
                 - np.mean(rng.normal(loc=50, scale=10, size=n) < 45),
   "prob_gt_362": np.mean(rng.normal(loc=300, scale=50, size=n) > 362),
