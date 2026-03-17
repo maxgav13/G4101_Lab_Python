@@ -410,7 +410,7 @@ c = np.array([3,5,9,5,5,8,13,3,9,9])
 r = stats.pearsonr(a,b)
 r_ci = r.confidence_interval(confidence_level=1-alfa)
 
-print(f"r: {r[0]:.3f}, IC {(1-alfa)*100:.0f}% [{r_ci[0]:.3f}, {r_ci[1]:.3f}]")
+print(f"r: {r[0]:.3f}, p={r[1]:.3e}, IC {(1-alfa)*100:.0f}% [{r_ci[0]:.3f}, {r_ci[1]:.3f}]")
 ```
 
 ```{python}
