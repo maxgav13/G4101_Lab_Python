@@ -403,6 +403,7 @@ def tile_props(key):
 
 ```{python}
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib.cm as cm
 
 fig, ax = plt.subplots(figsize=(8, 6))
 mosaic(x_tab.stack(), properties=tile_props, gap=0.02, ax=ax)
