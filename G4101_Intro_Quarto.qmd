@@ -30,7 +30,7 @@ bibliography: references.bib
 Para poder usar este tipo de documentos es necesario primero instalar Quarto en su equipo. Seguir las instrucciones en el sitio web [Quarto](http://quarto.org).
 :::
 
-Este es un documento Quarto (`.qmd`). Permite trabajar con texto y ejecutar codigo de manera conjunta para generar un documento completo de su analisis. Para compilar el documento haga click en *Preview* (![](imgs/positron-render-button.png){width="64"}). 
+Este es un documento Quarto (`.qmd`). Permite trabajar con texto y ejecutar codigo de manera conjunta para generar un documento completo de su analisis. Para compilar el documento haga click en *Preview* (![](imgs/positron-render-button.png){width="64"}).
 
 Permite incorporar referencias bibliograficas, como por ejemplo @agresti2002 que es una referencia clasica para datos categoricos.
 
@@ -225,7 +225,6 @@ plt.show()
 @fig-penguins-1 y @fig-penguins-2 muestran la relacion del largo de la aleta y de pico con la masa corporal.
 
 ::: {.content-visible when-format="html"}
-
 ## Widgets HTML
 
 Si el analisis en **Python** involucra componentes interactivos, estos tambien son compatibles con los resultados en el archivo *html*. Estos **NO** pueden desplegarse en *pdf* o *word*, por lo que se incluyen solo cuando el documento se renderiza a *html*.
@@ -241,24 +240,46 @@ fig = px.line(df, x='date', y=['GOOG', 'AAPL', 'AMZN'],
               title='Stock Prices Over Time')
 fig.show()
 ```
-
 :::
 
 # Formulas
 
 Expresiones matematicas y formulas se pueden desplegar en linea, dentro del cuerpo del texto ($A = \pi*r^{2}$) o por separado
 
-$$E = mc^{2}$$ Para escribir estas expresiones se usa lenguaje `LaTeX`.
+$$E = mc^{2}$$
+
+Para escribir estas expresiones se usa lenguaje `LaTeX`.
 
 # Desplegar/formatear valores
 
-Siempre que un valor exista dentro de un objeto guardado, este se puede acceder para ser desplegado en el cuerpo del documento. Por ejemplo: La masa corporal media de los pinguinos es de `{python} float(penguins.body_mass_g.mean().round(2))` g.
+Siempre que un valor exista dentro de un objeto guardado, este se puede acceder para ser desplegado en el cuerpo del documento. Por ejemplo: La masa corporal media de los pinguinos es de `{python} float(penguins.body_mass_g.mean().round(2))` g, que se obtiene con el siguiente codigo ``{python}  penguins.body_mass_g.mean().round(2)``. 
+
+Otra forma de desplegar valores es usando la clase `Markdown` de `IPython.display`, que permite formatear el resultado a desplegar, por ejemplo, para mostrar el mismo resultado pero con un formato diferente se puede usar el siguiente codigo:
+
+```{python}
+from IPython.display import Markdown as md
+
+md(f"La masa corporal media de los pinguinos es de {penguins.body_mass_g.mean():.2f} g.")
+```
 
 # Importando figuras
 
 Se pueden importar figuras externas (guardadas previamente) usando la sintaxis de markdown ([Figuras Quarto](https://quarto.org/docs/authoring/figures.html)). Sin embargo, para ajustar el tamaño de la figura es necesario usar opciones adicionales.
 
 ![Logo de Positron](imgs/positron.png){#fig-positron fig-align="center" width="40%"}
+
+Otra opción es mediante código, importando la clase `Image` de `IPython.display` y luego creando una instancia de `Image` con la ruta de la imagen. Por ejemplo:
+
+```{python}
+#| label: fig-p9shapes
+#| fig-cap: "plotnine shapes"
+#| out-width: '70%'
+#| fig-align: 'center'
+
+from IPython.display import Image
+
+Image(filename='imgs/plotnine-shapes.png')
+```
 
 # Salvando y compartiendo
 
