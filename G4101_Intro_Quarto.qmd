@@ -264,7 +264,7 @@ md(f"La masa corporal media de los pinguinos es de {penguins.body_mass_g.mean():
 
 # Importando figuras
 
-Se pueden importar figuras externas (guardadas previamente) usando la sintaxis de markdown ([Figuras Quarto](https://quarto.org/docs/authoring/figures.html)). Sin embargo, para ajustar el tamaño de la figura es necesario usar opciones adicionales.
+Se pueden importar figuras externas (guardadas previamente) usando la sintaxis de markdown ([Figuras Quarto](https://quarto.org/docs/authoring/figures.html)): ``![descripcion](ubicacion-de-la-imagen){#fig-label fig-align="center" width="40%"}``.
 
 ![Logo de Positron](imgs/positron.png){#fig-positron fig-align="center" width="40%"}
 
