@@ -1,0 +1,95 @@
+---
+title: "Instalar Python para ciencia de datos"
+format: 
+  html: default
+  typst: default
+execute: 
+  eval: false
+---
+
+# Introducción
+
+En esta sección, aprenderás a instalar Python y configurar tu entorno de desarrollo para la ciencia de datos. Python es un lenguaje de programación muy popular en el campo de la ciencia de datos debido a su simplicidad y la gran cantidad de bibliotecas disponibles para análisis de datos, visualización y aprendizaje automático.
+
+# Paso 1: Instalar IDE
+
+Instalar [Positron](https://positron.posit.co/download.html) o [VSCode](https://code.visualstudio.com/download). Recomendable: Abrir el software de su elección y crear una carpeta para el curso.
+
+# Paso 2: Instalar Python
+
+La forma más sencilla de instalar Python es a través de la distribución Anaconda o preferiblemente [Miniconda](https://www.anaconda.com/download/success), que incluye Python y muchas bibliotecas útiles para la ciencia de datos. Sigue estos pasos para instalar Miniconda:
+
+1. Ve al sitio web de [Miniconda](https://www.anaconda.com/download/success)
+2. Descarga el instalador para tu sistema operativo (Windows, macOS o Linux).
+3. Ejecuta el instalador y sigue las instrucciones en pantalla para completar la instalación.
+
+Una vez que hayas instalado Miniconda (crea un entorno virtual base), puedes verificar que Python se haya instalado correctamente abriendo la Terminal o el Anaconda Prompt y ejecutando el siguiente comando:
+
+```{bash}
+python --version
+```
+
+Deberías ver la versión de Python que se ha instalado.
+
+# Paso 3: Crear un entorno virtual
+
+## Desde cero
+
+Es recomendable crear un entorno virtual para tu proyecto de ciencia de datos. Esto te permitirá gestionar las dependencias de tu proyecto de manera aislada. Para crear un entorno virtual con Anaconda, sigue estos pasos:
+
+1. Abre el Anaconda Prompt (o la Terminal).
+2. Ejecuta el siguiente comando para crear un nuevo entorno virtual llamado "datascience":
+
+```{bash}
+conda create --name datascience python=3.13
+```
+
+3. Activa el entorno virtual con el siguiente comando:
+
+```{bash}
+conda activate datascience
+```
+
+Ahora estás dentro del entorno virtual "datascience", donde puedes instalar las bibliotecas necesarias para tu proyecto de ciencia de datos sin afectar otras instalaciones de Python en tu sistema.
+
+## Desde un archivo `environment.yml`
+
+Para recrear un entorno virtual ya creado, puedes usar el siguiente comando:
+
+```{bash}
+conda env create -f environment.yml
+```
+
+Donde `environment.yml` es un archivo que contiene la configuración del entorno virtual, incluyendo las bibliotecas y sus versiones. El archivo `environment.yml` del curso se encuentra en el repositorio de [GitHub del curso](https://github.com/maxgav13/G4101_Lab_Python), o puede descargarse desde [aquí](https://github.com/maxgav13/G4101_Lab_Python/blob/main/environment.yml).
+
+# Paso 4: Instalar bibliotecas de ciencia de datos (opcional)
+
+**Este paso es opcional si no se creó un entorno virtual a partir de un archivo `environment.yml`.**
+
+Con el entorno virtual activado, puedes instalar las bibliotecas de ciencia de datos que necesitarás para tu proyecto. Algunas de las bibliotecas más comunes incluyen:
+
+- NumPy: para operaciones matemáticas y manejo de arrays.
+- Pandas: para manipulación y análisis de datos.
+- Matplotlib y Seaborn: para visualización de datos.
+- Seaborne: para visualización de datos estadísticos.
+
+Puedes instalar estas bibliotecas utilizando el siguiente comando:
+
+```{bash}
+conda install numpy pandas matplotlib seaborn
+```
+
+Esto instalará todas las bibliotecas necesarias para comenzar a trabajar en tu proyecto de ciencia de datos.
+
+Si tienes varios ambientes virtuales, puedes revisar cuáles tienes disponibles con el siguiente comando:
+
+```{bash}
+conda env list
+```
+
+Donde el que tiene un asterisco (*) es el ambiente virtual que tienes activo.
+
+# Conclusión
+
+¡Felicidades! Ahora tienes Python instalado y un entorno virtual configurado para tu proyecto de ciencia de datos. En las siguientes secciones, aprenderás a usar estas herramientas para analizar datos, crear visualizaciones y construir modelos de aprendizaje automático.
+

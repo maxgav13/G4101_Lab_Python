@@ -1,7 +1,77 @@
 import numpy as np
 import pandas as pd
 from scipy import stats
+import matplotlib.pyplot as plt
 from typing import Callable, Optional, Dict, Any
+
+def rose_diag_circ(
+    angles: np.ndarray, 
+    bin_size: int = 20, 
+    dir: int = 1,
+    density: bool = False, 
+    ax: Optional[plt.Axes] = None, 
+    **kwargs
+    ) -> plt.Axes:
+    
+    """
+    Crea un diagrama de rosas de datos circulares para visualizar la distribución de ángulos.
+
+    Parameters:
+    -----------
+    angles (array-like): Arreglo de ángulos en grados.
+    bin_size (int): Tamaño de los bins para el histograma circular.
+    dir (int): Indicador del tipo de datos, 1 para direccionales y 0 para no-direccionales.
+    density (bool): Si True, normaliza el histograma para representar densidad.
+    ax (matplotlib.axes.Axes, opcional): Eje en el que dibujar. Si None, se crea uno nuevo.
+    **kwargs: Argumentos adicionales para plt.bar.
+
+    Returns:
+    --------
+    matplotlib.axes.Axes: El eje con el diagrama de rosas.
+    """
+    if ax is None:
+        fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+    
+    angles = np.where(angles > 360, angles - 360, angles)
+
+    x = np.copy(angles)
+
+    if dir == 0:
+        y = x + 180  # Agregar 180 grados para datos no-direccionales
+        z = np.concatenate([x, y])
+    else:
+        z = x
+    
+    z = np.where(z > 360, z - 360, z)
+
+    angles = np.where(dir == 1, angles, angles*2)  # Duplicar ángulos para datos no-direccionales
+
+    angles = np.deg2rad(angles)  # Convertir a radianes
+
+    # Calcular direccion media
+    C = np.sum(np.cos(angles))
+    S = np.sum(np.sin(angles))
+    mean_angle = np.arctan2(S, C)
+    mean_angle = np.where(dir == 0, mean_angle/2, mean_angle)  # Ajustar para datos no-direccionales
+
+
+    # Crear histogramas circulares
+    bin_size = 20
+    bins = int(360/bin_size)
+    e = np.linspace(0,2*np.pi,bins+1)
+    b = np.linspace(2*np.pi/(bins*2),2*np.pi-2*np.pi/(bins*2),bins)
+    n,e = np.histogram(np.radians(z),bins=e)
+
+    
+    # Dibujar el diagrama de rosas
+    ax.bar(b, np.sqrt(n), width=(2 * np.pi / bins), **kwargs)
+    ax.vlines(mean_angle, 0, np.sqrt(n).max(), colors='r', linestyles='dashed', label='Mean Direction')
+    ax.set_xticks(e[0:bins])
+    ax.set_theta_offset(np.pi/2)
+    ax.set_theta_direction(-1)
+    
+    return ax
+
 
 def wilcoxon_effects(
     x: np.ndarray, 
