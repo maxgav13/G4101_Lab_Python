@@ -34,6 +34,7 @@ import numpy as np
 import pandas as pd
 
 import geopandas as gpd
+
 # import shapely
 import rasterio
 import rasterio.plot
@@ -42,6 +43,7 @@ import rioxarray as rxr
 
 import geostatspy.GSLIB as GSLIB
 import geostatspy.geostats as geostats
+
 # import geostatspy
 # import pykrige
 import gstools as gs
@@ -50,18 +52,19 @@ import gstools as gs
 
 import plotnine as p9
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from scipy import stats
 from scipy.spatial.distance import pdist
 from sklearn.preprocessing import QuantileTransformer
 
-p9.theme_set(p9.theme_minimal(base_size = 14))
-p9.theme_update(legend_position='right')
+p9.theme_set(p9.theme_minimal(base_size=14))
+p9.theme_update(legend_position="right")
 
-x_var = 'Distancia [m]'
-y_var = 'Semivarianza'
-x_map = 'X [m]'
-y_map = 'Y [m]'
+x_var = "Distancia [m]"
+y_var = "Semivarianza"
+x_map = "X [m]"
+y_map = "Y [m]"
 x_vmap = "Distancia E-W [m]"
 y_vmap = "Distancia N-S [m]"
 ```
@@ -149,6 +152,7 @@ La siguiente tabla muestra los valores mas tipicos de $\lambda$ con su respectiv
 |    0.5    |   $\sqrt{x}$   |
 |     1     |      $x$       |
 |     2     |     $x^2$      |
+
 
 ```{python}
 if transformar:
@@ -254,11 +258,9 @@ int_points = gs.generate_grid([x_grid, y_grid])
 
 ## Distribucion espacial
 
-Vista estatica y dinamica de los datos. El mapa dinamico solo se despliega en version HTML.
-
 ```{python dist-espacial}
 ax = outline_sf.plot(facecolor='none', edgecolor='cyan', linewidth=1.25)
-datos_sf.plot(column=myvar, cmap='Spectral', legend=True, 
+datos_sf.plot(column=myvar, cmap='Spectral_r', legend=True, 
               legend_kwds={'label': myvar, 'shrink': 0.8}, ax=ax)
 ax.set_xlabel(x_map)
 ax.set_ylabel(y_map)
@@ -271,16 +273,16 @@ plt.show()
 
 Creacion del variograma. La funcion basica, `gs.vario_estimate`, requiere de los siguientes argumentos:
 
--   `pos` tupla de coordenadas (x, y) de los puntos
--   `field` datos de interes a interpolar
+- `pos` tupla de coordenadas (x, y) de los puntos
+- `field` datos de interes a interpolar
 
 Argumentos adicionales son:
 
--   `return_counts` para que devuelva el número de pares de puntos en cada lag
--   < las distancias (lags) a las cuales calcular el variograma
--   `max_dist` la distancia máxima a considerar
--   `bin_no` el número de lags a utilizar
--   `normalizer` si se usa Box-Cox, se pasa el objeto `bc_norm` creado anteriormente
+- `return_counts` para que devuelva el número de pares de puntos en cada lag
+- `bin_edges` las distancias (lags) a las cuales calcular el variograma
+- `max_dist` la distancia máxima a considerar
+- `bin_no` el número de lags a utilizar
+- `normalizer` si se usa Box-Cox, se pasa el objeto `bc_norm` creado anteriormente
 
 Se usa `bin_edges` o alguna combinación de `max_dist` y/o `bin_no`.
 
@@ -322,8 +324,8 @@ variog_omni
 
 Representacion en 2D de la variable donde:
 
--   `nxlag`, `nylag`: son el numero de lags a usar
--   `dxlag`, `dylag`: son el tamanho del celda
+- `nxlag`, `nylag`: son el numero de lags a usar
+- `dxlag`, `dylag`: son el tamanho del celda
 
 ```{python variog-map}
 tmin = -9999.
@@ -333,6 +335,11 @@ dxlag = dylag = 50
 minnp = 1
 isill = 1
 
+xmax = nxlag * dxlag + dxlag / 2
+ymax = nylag * dylag + dylag / 2
+xmin = -xmax
+ymin = -ymax
+
 vmap, npmap = geostats.varmapv(datos_sf,x_coord,y_coord,myvar,tmin,tmax,nxlag,nylag,dxlag,dylag,minnp,isill)
 ```
 
@@ -341,22 +348,19 @@ vmap, npmap = geostats.varmapv(datos_sf,x_coord,y_coord,myvar,tmin,tmax,nxlag,ny
 ny, nx = vmap.shape
 
 # centers relative to map center (use (nx-1)/2 so centers are symmetric for both even/odd sizes)
-x_centers = (np.arange(nx) - (nx - 1) / 2.0) * dxlag
-y_centers = (np.arange(ny) - (ny - 1) / 2.0) * dylag
+# x_centers = (np.arange(nx) - (nx - 1) / 2.0) * dxlag
+# y_centers = (np.arange(ny) - (ny - 1) / 2.0) * dylag
 
 # compute cell centre coordinates (match how you set xmin/xmax/ymin/ymax and dxlag/dylag)
-# x_centers = np.linspace(xmin + dxlag/2, xmax - dxlag/2, nx)
+x_centers = np.linspace(xmin + dxlag / 2, xmax - dxlag / 2, nx)
 # use top-to-bottom ordering for rows (vmap[0] is top row); flip if your array uses bottom-to-top
-# y_centers = np.linspace(ymax - dylag/2, ymin + dylag/2, ny)
+y_centers = np.linspace(ymax - dylag / 2, ymin + dylag / 2, ny)
 
 XX, YY = np.meshgrid(x_centers, y_centers)
 
-df_vmap = pd.DataFrame({
-    "x": XX.ravel(),
-    "y": YY.ravel(),
-    "gamma": vmap.ravel(),
-    "npair": npmap.ravel()
-})
+df_vmap = pd.DataFrame(
+    {"x": XX.ravel(), "y": YY.ravel(), "gamma": vmap.ravel(), "npair": npmap.ravel()}
+)
 
 df_vmap  # DataFrame
 ```
@@ -369,10 +373,6 @@ df_vmap  # DataFrame
 ```
 
 ```{python}
-xmax = nxlag*dxlag+dxlag/2
-ymax = nylag*dylag+dylag/2
-xmin = -xmax
-ymin = -ymax
 vmin = vmap.min()
 vmax = vmap.max()
 cmap = plt.get_cmap('plasma')
@@ -386,8 +386,8 @@ plt.show()
 
 Variogramas en diferentes direcciones donde se modifican unicamente los siguientes parametros, donde las direcciones se tienen que dar en radianes:
 
--   `angles`: direcciones en las cuales se va a calcular el variograma
--   `angles_tol`: tolerancia angular, usualmente 22.5
+- `angles`: direcciones en las cuales se va a calcular el variograma
+- `angles_tol`: tolerancia angular, usualmente 22.5
 
 ```{python variog-dir}
 azi = np.arange(0,180,45)
@@ -435,6 +435,38 @@ variog_dir = (p9.ggplot(dat_vgm2,p9.aes(x = 'lag', y = 'gamma',
   p9.theme(legend_position="top") +
   p9.scale_color_brewer(type='qual', palette = 2))
 variog_dir
+```
+
+```{python}
+markers = {0: "o", 45: "^", 90: "s", 135: "D"}
+palette = {0: "#4DAF4A", 45: "#FF7F00", 90: "#9E9AC8", 135: "#F781BF"}
+
+fig_dir, ax_dir = plt.subplots(figsize=(7, 5))
+
+sns.scatterplot(
+    data=dat_vgm2,
+    x="lag",
+    y="gamma",
+    hue="dir_hor",
+    style="dir_hor",
+    # markers=markers,
+    # palette=palette,
+    s=80,
+    ax=ax_dir,
+)
+
+ax_dir.axhline(1.0, color="red", linestyle="--", linewidth=1)
+ax_dir.set_xlabel("Distancia [m]")
+ax_dir.set_ylabel("Semivarianza")
+ax_dir.set_ylim(bottom=0)
+
+# handles, labels = ax_dir.get_legend_handles_labels()
+# ax_dir.legend(handles, labels, title="Direccion", loc="upper left", frameon=False,
+#           ncol=4, bbox_to_anchor=(0, 1.05))
+
+sns.despine()
+plt.tight_layout()
+plt.show()
 ```
 
 ## Modelado
@@ -489,13 +521,37 @@ print(f"R^2: {r2:.4f}")
 ```{python}
 lags_fit = np.linspace(0, bin_center.max(), 100)
 gamma_fit = fit_model.variogram(lags_fit)
-df_fit = pd.DataFrame({'lag': lags_fit, 'gamma': gamma_fit})
+df_fit = pd.DataFrame({"lag": lags_fit, "gamma": gamma_fit})
 
-# (variog_omni + 
+# (variog_omni +
 #   p9.geom_line(p9.aes(x='lag', y='gamma'), data=df_fit, color='black', size=1.25, linetype='dashed', inherit_aes=False))
 
-(variog_dir + 
-  p9.geom_line(p9.aes(x='lag', y='gamma'), data=df_fit, color='black', size=1.25, linetype='dashed', inherit_aes=False))
+(
+    variog_dir
+    + p9.geom_line(
+        p9.aes(x="lag", y="gamma"),
+        data=df_fit,
+        color="black",
+        size=1.25,
+        linetype="dashed",
+        inherit_aes=False,
+    )
+)
+```
+
+```{python}
+x_smooth = np.linspace(0, dat_vgm2["lag"].max(), 200)
+gamma_model = fit_model.variogram(x_smooth)
+
+ax_dir.plot(
+    x_smooth,
+    gamma_model,
+    color="black",
+    linewidth=1.5,
+    linestyle="-",
+    label="Modelo Esférico",
+)
+fig_dir.show()
 ```
 
 ```{python}
@@ -507,7 +563,6 @@ fit_model.plot(x_max=bin_center.max(), ax=ax, label='Modelo Ajustado')
 plt.show()
 ```
 
-
 ### Validacion cruzada
 
 Una vez escogido el modelo y ajustado a los datos se realiza la validacion cruzada para determinar si es aceptable. Tambien se pueden ajustar diferentes modelos y con los datos de validacion cruzada se determina el mejor.
@@ -515,7 +570,7 @@ Una vez escogido el modelo y ajustado a los datos se realiza la validacion cruza
 A continuacion se presentan tres funciones para realizar la validacion cruzada: Leave-One-Out Cross-Validation (LOOCV), k-fold Cross-Validation (k-fold CV) y Spatial Cross-Validation (SCV). Para cuando se tienen pocos datos se recomienda usar LOOCV, mientras que para conjuntos de datos mas grandes se puede usar k-fold CV con k=5 o k=10.
 
 ```{python}
-import fns.cv_gs
+from fns import cv_gs
 ```
 
 ```{python xval-loocv}
@@ -564,7 +619,7 @@ results_spatialk = cv_gs.gs_spatial_kfold(
 ```
 
 ```{python}
-results = results_kfold  # results_loo, results_kfold, o results_spatialk
+results = results_spatialk  # results_loo, results_kfold, o results_spatialk
 ```
 
 ```{python}
@@ -722,15 +777,18 @@ new_transform
 ```{python}
 fig, ax = plt.subplots(figsize=(6, 5))
 
-img = np.flipud(pred_var.T)
-rasterio.plot.show(img, transform=new_transform, ax=ax, cmap='viridis')
-outline_sf.boundary.plot(ax=ax, color='white', linewidth=1.25)
-mappable = ax.get_images()[0] 
-fig.colorbar(mappable, ax=ax, orientation='vertical', label=myvar0)
+# img = np.flipud(pred_var.T)
+# rasterio.plot.show(img, transform=new_transform, ax=ax, cmap="viridis")
+# outline_sf.boundary.plot(ax=ax, color="white", linewidth=1.25)
+# mappable = ax.get_images()[0]
+# fig.colorbar(mappable, ax=ax, orientation="vertical", label=myvar0)
 
-# extent = (minx, maxx, miny, maxy)
-# im = ax.imshow(pred_var.T, extent=extent, origin='lower', cmap='viridis', aspect='equal')
-# cbar = fig.colorbar(im, ax=ax, orientation='vertical', label=myvar0)
+extent = (minx, maxx, miny, maxy)
+im = ax.imshow(
+    pred_var.T, extent=extent, origin="lower", cmap="viridis", aspect="equal"
+)
+outline_sf.boundary.plot(ax=ax, color="white", linewidth=1.25)
+cbar = fig.colorbar(im, ax=ax, orientation="vertical", label=myvar0)
 
 ax.set_xlabel(x_map)
 ax.set_ylabel(y_map)
@@ -844,16 +902,20 @@ print(ds)  # Dataset
 import plotly.graph_objects as go
 
 # Crear figura de superficie 3D
-fig = go.Figure(data=[go.Surface(z=pred_var.T, x=grid_x, y=grid_y, colorscale="Viridis")])
+fig = go.Figure(
+    data=[go.Surface(z=pred_var.T, x=grid_x, y=grid_y, colorscale="Viridis")]
+)
 
 # Agregar etiquetas y título
 fig.update_layout(
     title="Mapa 3D de Predicción",
-    scene=dict(xaxis_title=x_map, 
-               yaxis_title=y_map, 
-               zaxis_title=myvar0, 
-               aspectmode = 'manual', 
-               aspectratio = dict(x = 1, y = 1, z = .5)),
+    scene=dict(
+        xaxis_title=x_map,
+        yaxis_title=y_map,
+        zaxis_title=myvar0,
+        aspectmode="manual",
+        aspectratio=dict(x=1, y=1, z=0.5),
+    ),
     autosize=True,
     # width=800,
     # height=800,
@@ -862,5 +924,3 @@ fig.update_layout(
 
 fig.show()
 ```
-
-
